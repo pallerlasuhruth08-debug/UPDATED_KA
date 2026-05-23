@@ -28,7 +28,7 @@ function doPost(e) {
     var req = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     switch (req.action) {
       case 'ping':   out = { ok: true, ts: Date.now() }; break;
-      case 'login':  out = login_(req); break;
+      case 'login':  out = login_(req); break;      case 'signup': out = signup_(req); break;
       case 'logout': out = logout_(req); break;
       case 'load':   out = load_(req); break;
       case 'save':   out = save_(req); break;
@@ -92,6 +92,25 @@ function login_(req) {
     }
   }
   return { ok: false, error: 'Invalid username or password.' };
+}
+
+function signup_(req) {
+  ensure_();
+  var user = String(req.username || '').trim();
+  var pass = String(req.password || '');
+  var name = String(req.name || '').trim();
+  if (!user || !pass) return { ok: false, error: 'Username and password required.' };
+  var sh = sheet_(T_USERS);
+  var rows = sh.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).trim().toLowerCase() === user.toLowerCase()) {
+      return { ok: false, error: 'Username already exists.' };
+    }
+  }
+  sh.appendRow([user, pass, name || user, 'yes']);
+  var token = Utilities.getUuid();
+  sheet_(T_SESS).appendRow([token, user, Date.now()]);
+  return { ok: true, token: token, name: name || user };
 }
 
 function userForToken_(token) {
