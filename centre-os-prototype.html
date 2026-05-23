@@ -224,7 +224,13 @@
    ROLE LIBRARY  (names from your model; responsibilities/POC/toolkit are
    editable placeholders — correct them once you see them live)
    ========================================================================= */
-const PRIORITY = ['nurturing','programs','promotions']; // the 3 corners
+const PRIORITY_BY_STAGE = {
+  micro:  ['nurturing'],
+  sub:    ['nurturing','programs','promotions'],
+  centre: ['nurturing','relations','registration','communication','programs','temple','finance','biksha','promotions'],
+  sector: []
+};
+const PRIORITY = ['nurturing','programs','promotions']; // legacy
 
 const ROLES = {
   nurturing:  { name:'Nurturing',   color:'#5b6a9e', priority:true,
@@ -243,13 +249,13 @@ const ROLES = {
     blurb:'Builds partnerships and keeps the community fabric strong.',
     resp:['Liaise with RWAs, local bodies & partners','Manage volunteer relationships','Resolve conflicts & gather goodwill'],
     poc:'Centre Coordinator', tool:'ClickUp — Partnerships board', link:'https://app.clickup.com/' },
-  registration:{ name:'Registration', color:'#7a93c4', priority:false,
-    blurb:'Owns sign-ups and clean entry of every participant.',
-    resp:['Manage event & program registrations','Maintain participant lists','Coordinate closely with Database'],
-    poc:'Database Lead', tool:'ClickUp — Registration forms', link:'https://app.clickup.com/' },
-  database:   { name:'Database',    color:'#a9d6d6', priority:false,
-    blurb:'The single source of truth for member and centre data.',
-    resp:['Maintain the member database','Ensure data hygiene & privacy','Generate reports for the team'],
+  registration:{ name:'Registration + Database', color:'#7a93c4', priority:false,
+    blurb:'Owns sign-ups, clean entry of every participant, and maintains the registration database.',
+    resp:['Manage event & program registrations','Maintain participant lists','Maintain registration records and database','Coordinate closely with Communication'],
+    poc:'Centre Coordinator', tool:'ClickUp — Registration forms', link:'https://app.clickup.com/' },
+  communication:{ name:'Communication', color:'#a9d6d6', priority:false,
+    blurb:'Manages member communication and keeps the community connected.',
+    resp:['Handle member communications and outreach','Manage newsletters and announcements','Maintain communication channels and records'],
     poc:'Centre Coordinator', tool:'ClickUp / Google Sheets', link:'https://app.clickup.com/' },
   temple:     { name:'Temple',      color:'#7a93c4', priority:false,
     blurb:'Oversees spiritual and temple activities.',
@@ -264,31 +270,29 @@ const ROLES = {
     resp:['Plan biksha / meals for programs','Coordinate supplies & volunteers','Manage seva contributions'],
     poc:'Centre Coordinator', tool:'ClickUp — Biksha board', link:'https://app.clickup.com/' },
 };
-const ROLE_ORDER = ['nurturing','relations','registration','database','programs','temple','finance','biksha','promotions'];
+const ROLE_ORDER = ['nurturing','relations','registration','communication','programs','temple','finance','biksha','promotions'];
 
 /* Which roles each stage requires */
 const STAGE_ROLES = {
   micro:  ['nurturing'],
   sub:    ['nurturing','programs','promotions'],
   centre: ROLE_ORDER.slice(),
-  super:  ROLE_ORDER.slice(),
   sector: [] // sectors aggregate centres; no roles of their own
 };
 const STAGE_META = {
   micro:  {label:'Micro-centre', tag:'micro',  need:'Nurturer only',           min:'e.g. an apartment or small area'},
   sub:    {label:'Sub-centre',   tag:'sub',    need:'3 core roles',            min:'Nurturing · Programs · Promotions'},
   centre: {label:'Centre',       tag:'centre', need:'All 9 roles',            min:'Full-fledged centre'},
-  super:  {label:'Super-centre', tag:'super',  need:'9 roles + sub-roles',    min:'Each role has a team beneath it'},
   sector: {label:'Sector',       tag:'sector', need:'Group of centres',       min:'A mature centre promoted to sector'},
 };
-const STAGE_SEQ = ['micro','sub','centre','super','sector'];
+const STAGE_SEQ = ['micro','sub','centre','sector'];
 
 /* Triangle geometry — 9 sub-triangles mapped to roles (matches your diagram) */
 const TRI = {
   nurturing:   '150,0 100,86.6 200,86.6',
   registration:'100,86.6 50,173.2 150,173.2',
   relations:   '100,86.6 200,86.6 150,173.2',
-  database:    '200,86.6 150,173.2 250,173.2',
+  communication: '200,86.6 150,173.2 250,173.2',
   programs:    '50,173.2 0,259.8 100,259.8',
   temple:      '50,173.2 150,173.2 100,259.8',
   finance:     '150,173.2 100,259.8 200,259.8',
@@ -296,7 +300,7 @@ const TRI = {
   promotions:  '250,173.2 200,259.8 300,259.8',
 };
 const TRI_LABEL = { /* label centroids */
-  nurturing:[150,64],registration:[100,150],relations:[150,123],database:[200,150],
+  nurturing:[150,64],registration:[100,150],relations:[150,123],communication:[200,150],
   programs:[50,237],temple:[100,196],finance:[150,237],biksha:[200,196],promotions:[250,237]
 };
 
@@ -358,7 +362,7 @@ function parentOf(id, root=STATE){ for(const c of root.children){ if(c.id===id) 
 function nodeByPath(){ return PATH.length? find(PATH[PATH.length-1]) : STATE; }
 
 function requiredRoles(n){ return STAGE_ROLES[n.stage]||[]; }
-function priorityRequired(n){ return requiredRoles(n).filter(r=>PRIORITY.includes(r)); }
+function priorityRequired(n){ return (PRIORITY_BY_STAGE[n.stage]||PRIORITY).filter(r=>requiredRoles(n).includes(r)); }
 function assignedCount(n, roleSet){ return roleSet.filter(r=>n.assign[r]).length; }
 
 /* walk all "place" nodes (centres/sub/micro/super + promoted sectors) */
@@ -527,17 +531,22 @@ function renderPlace(){
   STAGE_SEQ.forEach(s=>{
     h+=`<div class="stage-opt ${n.stage===s?'on':''}" onclick='setStage("${n.id}","${s}")'>
       ${STAGE_META[s].label.replace('-centre','-c.').replace('Super-c.','Super')}
-      <small>${s==='micro'?'1 role':s==='sub'?'3 roles':s==='centre'?'9 roles':s==='super'?'9 + teams':'group'}</small>
+      <small>${s==='micro'?'1 role':s==='sub'?'3 roles':s==='centre'?'9 roles':s==='sector'?'group':'?'}</small>
     </div>`;
   });
   h+=`</div>`;
+  h+=`<div class="row" style="justify-content:flex-end;width:100%;margin-top:10px">
+    <button class="btn ghost sm" onclick='setStage("${n.id}","sector")' style="display:flex;align-items:center;gap:6px">
+      <svg width="13" height="13" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><path d="M7 1L13 10H10V13H4V10H1L7 1Z" fill="currentColor"/></svg>
+      Make this a Sector
+    </button>
+  </div>`;
   h+= triangleSVG(n);
   h+=`<div class="legend">
     <span><i style="background:var(--good)"></i>Assigned</span>
     <span><i style="background:#cfd4e3"></i>Needed · pending</span>
     <span><i style="background:#eef0f6;border:1px solid #e2e5ee"></i>Future stage</span>
   </div>`;
-  if(n.stage==='super') h+=`<div class="note" style="width:100%">Super-centre: each of the 9 roles can hold a <b>team of sub-roles</b>. In this prototype we track the 9 leads; sub-roles are the next build step.</div>`;
   if(n.stage==='sector') h+=`<div class="note" style="width:100%">You've promoted this to a <b>Sector</b>. It now groups centres rather than holding its own roles — add centres below.</div>`;
   h+=`</div>`;
 
@@ -562,7 +571,7 @@ function renderPlace(){
           <div class="who">${who?who:(active?'Not yet identified':'Unlocks at higher stage')}</div>
         </div>
         <div class="right">
-          <span class="pri ${r.priority?'p':'n'}">${r.priority?'Priority':'Next-level'}</span>
+          <span class="pri ${(PRIORITY_BY_STAGE[n.stage]||[]).includes(rk)?'p':'n'}">${(PRIORITY_BY_STAGE[n.stage]||[]).includes(rk)?'Priority':'Next-level'}</span>
           ${who?'<span class="chip-assigned">✓</span>':(active?'<span class="chip-pending">●</span>':'')}
         </div>
       </div>`;
@@ -573,9 +582,8 @@ function renderPlace(){
     h+=`<div class="panel" style="margin-top:18px">
       <div class="row" style="justify-content:space-between;align-items:flex-start">
         <h3 style="margin:0">3 · Map clusters (sub-areas)</h3>
-        <button class="btn ghost sm" onclick='setStage("${n.id}","sector")'>↑ Make this a Sector</button>
       </div>
-      <p class="hint">Map this centre's sub-areas as named clusters, and classify each as a micro / sub / full-fledged / super centre — every cluster is its own entity you can grow. When this centre matures, make it a Sector and these clusters become its centres.</p>`;
+      <p class="hint">Map sub-areas: a Centre can contain Sub-centres and Micro-centres; a Sub-centre can contain Micro-centres. Every cluster is its own entity you can grow. Use the Sector button above to promote this centre.</p>`;
     h+= childrenBlock(n,'place');
     h+=`</div>`;
   }
@@ -605,7 +613,6 @@ function childrenBlock(n, mode){
   }
   h+=`<div class="row" style="margin-top:12px">
         <button class="btn sm" onclick='addPlace("${n.id}")'>＋ ${isSector?'Add centre':'Map a cluster'}</button>
-        ${!isSector?`<button class="btn ghost sm" onclick='splitInto("${n.id}")'>Quick-split into 3 clusters</button>`:''}
       </div>`;
   return h;
 }
@@ -691,7 +698,12 @@ function addSector(){
 function addPlace(parentId){
   const p=find(parentId);
   const isSector = p.stage==='sector';
-  const opts = STAGE_SEQ.map(s=>`<option value="${s}">${STAGE_META[s].label} — ${STAGE_META[s].need}</option>`).join('');
+  // Restrict child stage options by parent stage
+  let allowedStages;
+  if(p.stage==='centre') allowedStages = ['micro','sub'];
+  else if(p.stage==='sub') allowedStages = ['micro'];
+  else allowedStages = STAGE_SEQ;
+  const opts = allowedStages.map(s=>`<option value="${s}">${STAGE_META[s].label} — ${STAGE_META[s].need}</option>`).join('');
   modalForm(isSector?`Add a centre under ${p.name}`:`Map a cluster under ${p.name}`,[
     {k:'name',label:isSector?'Centre name':'Cluster (sub-area) name',ph:'e.g. Begur'},
     {k:'stage',label:'Classify as',select:opts,val:'centre'}
@@ -702,18 +714,6 @@ function addPlace(parentId){
   });
 }
 
-function splitInto(id){
-  const n=find(id);
-  modalForm(`Split ${n.name} into 3 clusters`,[
-    {k:'a',label:'Cluster 1 name',ph:'e.g. Begur'},
-    {k:'b',label:'Cluster 2 name',ph:'e.g. Neeladri'},
-    {k:'c',label:'Cluster 3 name',ph:'e.g. Konappana Agrahara'},
-    {k:'stage',label:'Envisioned level for each',select:STAGE_SEQ.map(s=>`<option value="${s}">${STAGE_META[s].label}</option>`).join(''),val:'centre'}
-  ],(v)=>{
-    [v.a,v.b,v.c].filter(Boolean).forEach(nm=> n.children.push(node(nm,'place',v.stage||'centre',{},[])));
-    render();
-  });
-}
 
 /* role detail + assign modal */
 function openRole(placeId, roleKey){
