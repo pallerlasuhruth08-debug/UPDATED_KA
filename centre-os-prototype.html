@@ -773,7 +773,7 @@ function modalForm(title, fields, onSave){
    BACKEND (Google Apps Script web app) + PER-USER AUTH
    ========================================================================= */
 const DEFAULT_API_URL='https://script.google.com/macros/s/AKfycbzQs98Hsez1dLis5pEHZtAFjLbRk6l6Ccg6EtzulymXJHJlg-IeDsDVcRUtQU3tSPuo/exec'; let API_URL=DEFAULT_API_URL, TOKEN='', UNAME='';
-try{ API_URL=localStorage.getItem('isha_api')||''; TOKEN=localStorage.getItem('isha_token')||''; UNAME=localStorage.getItem('isha_name')||''; }catch(e){}
+try{ API_URL=localStorage.getItem('isha_api')||DEFAULT_API_URL; TOKEN=localStorage.getItem('isha_token')||''; UNAME=localStorage.getItem('isha_name')||''; }catch(e){}
 
 const gate=document.getElementById('gate'), gatecard=document.getElementById('gatecard');
 function showGate(html){ gatecard.innerHTML=html; gate.style.display='flex'; }
@@ -834,7 +834,7 @@ function showLogin(){
     <label class="fld"><span>Password</span><input id="lp" type="password" autocomplete="current-password"/></label>
     <div id="gerr" class="gerr"></div>
     <button class="btn" style="width:100%" onclick="doLogin()">Log in</button>
-    <div class="grow"><a onclick="showSetup()">Backend settings</a></div>`);
+    <div class="grow"><a onclick="showSignup()">Create account</a> · <a onclick="showSetup()">Backend settings</a></div>`);
   setTimeout(()=>{ const e=document.getElementById('lp'); if(e) e.addEventListener('keydown',ev=>{ if(ev.key==='Enter') doLogin(); }); },0);
 }
 async function doLogin(){
@@ -870,6 +870,8 @@ function previewLocal(){
 }
 
 /* nav + boot */
+function showSignup(){ showGate(`<div class="glogo">${LOGO}</div><h2>Isha Karnataka</h2><p class="gsub">Create your account.</p><label class="fld"><span>Full name</span><input id="sn"/></label><label class="fld"><span>Username</span><input id="su" autocomplete="username"/></label><label class="fld"><span>Password</span><input id="sp" type="password" autocomplete="new-password"/></label><div id="gerr" class="gerr"></div><button class="btn" style="width:100%" onclick="doSignup()">Create account</button><div class="grow"><a onclick="showLogin()">Back to login</a></div>`); }
+async function doSignup(){ const n=document.getElementById('sn').value.trim(), u=document.getElementById('su').value.trim(), p=document.getElementById('sp').value, err=document.getElementById('gerr'); if(!u||!p){ err.textContent='Username and password required.'; return; } err.textContent='Creating account…'; try{ const r=await api('signup',{username:u,password:p,name:n}); if(r&&r.ok){ TOKEN=r.token; UNAME=r.name||n||u; try{ localStorage.setItem('isha_token',TOKEN); localStorage.setItem('isha_name',UNAME); }catch(e){} await afterAuth(); } else err.textContent=(r&&r.error)||'Signup failed.'; }catch(e){ err.textContent='Network error reaching the backend.'; } }
 document.getElementById('logoutBtn').onclick=doLogout;
 async function boot(){
   showGate('<p class="gsub" style="margin:34px 0">Loading…</p>');
