@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Isha Karnataka (Prototype)</title>
+<style>
+  :root{
+    --slate:#5b6a9e;        /* corner / priority roles */
+    --slate-d:#46537f;
+    --mid:#7a93c4;          /* mid roles */
+    --teal:#a9d6d6;         /* inner roles */
+    --teal-d:#7cb8b8;
+    --ink:#1f2433;
+    --muted:#6b7280;
+    --line:#e6e8ef;
+    --bg:#f5f6fb;
+    --card:#ffffff;
+    --good:#2f9e6f;
+    --warn:#e0a106;
+    --pend:#cfd4e3;
+    --shadow:0 1px 3px rgba(31,36,51,.08),0 8px 24px rgba(31,36,51,.06);
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+  a{color:inherit}
+  button{font-family:inherit;cursor:pointer}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px 80px}
+
+  /* top bar */
+  header.top{position:sticky;top:0;z-index:30;background:rgba(245,246,251,.86);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .top-inner{max-width:1180px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;gap:16px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.3px}
+  .logo .mk{width:26px;height:26px}
+  .nav{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+  .nav button{border:1px solid var(--line);background:var(--card);padding:8px 13px;border-radius:999px;font-size:13px;font-weight:600;color:var(--muted)}
+  .nav button.active{background:var(--slate);border-color:var(--slate);color:#fff}
+
+  /* breadcrumb */
+  .crumbs{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin:22px 0 6px}
+  .crumbs b{color:var(--ink)}
+  .crumbs .c{cursor:pointer}
+  .crumbs .c:hover{color:var(--slate);text-decoration:underline}
+
+  h1{font-size:26px;margin:8px 0 2px;letter-spacing:-.5px}
+  h2{font-size:19px;margin:30px 0 12px;letter-spacing:-.3px}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 8px}
+
+  /* dashboard */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0 8px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+  .kpi .n{font-size:30px;font-weight:800;letter-spacing:-1px}
+  .kpi .l{font-size:12.5px;color:var(--muted);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  .kpi small{color:var(--muted);font-weight:600}
+  .bar{height:8px;border-radius:6px;background:var(--pend);overflow:hidden;margin-top:12px}
+  .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--teal-d),var(--slate));border-radius:6px}
+
+  .stage-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:6px}
+  .stage-pill{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+  .stage-pill .n{font-size:22px;font-weight:800}
+  .stage-pill .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-top:2px}
+
+  /* cards grid */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:4px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);transition:transform .12s ease,box-shadow .12s ease;position:relative}
+  .card.click{cursor:pointer}
+  .card.click:hover{transform:translateY(-3px);box-shadow:0 6px 16px rgba(31,36,51,.12),0 18px 40px rgba(31,36,51,.10)}
+  .card h3{margin:2px 0 4px;font-size:17px}
+  .card .meta{font-size:13px;color:var(--muted)}
+  .card .foot{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap}
+
+  .tag{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.3px}
+  .tag.micro{background:#eef0fa;color:#5b6a9e}
+  .tag.sub{background:#e7eefb;color:#3f6dc0}
+  .tag.centre{background:#e3f4f1;color:#2f9e6f}
+  .tag.super{background:#f3ecfb;color:#7c4dbd}
+  .tag.sector{background:#fdeede;color:#c07b16}
+  .tag.region{background:#eef0fa;color:#46537f}
+
+  .mini-prog{flex:1;min-width:80px}
+  .mini-prog .bar{margin-top:0}
+  .mini-prog .lbl{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px;display:flex;justify-content:space-between}
+
+  .addcard{border:1.5px dashed #c4cadd;background:transparent;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;color:var(--slate);font-weight:700;min-height:120px;border-radius:var(--radius)}
+  .addcard:hover{background:#fff;border-color:var(--slate)}
+
+  /* buttons */
+  .btn{border:1px solid var(--slate);background:var(--slate);color:#fff;padding:9px 15px;border-radius:10px;font-weight:700;font-size:13.5px}
+  .btn:hover{background:var(--slate-d)}
+  .btn.ghost{background:#fff;color:var(--slate)}
+  .btn.ghost:hover{background:#f3f5fc}
+  .btn.sm{padding:6px 11px;font-size:12.5px;border-radius:8px}
+  .btn.danger{border-color:#e3b1b1;color:#b14040;background:#fff}
+  .btn.danger:hover{background:#fcefef}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+  /* layout: centre detail */
+  .split{display:grid;grid-template-columns:1.05fr 1fr;gap:26px;align-items:start;margin-top:10px}
+  @media (max-width:880px){.split{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr}.kpis{grid-template-columns:1fr 1fr}}
+  @media (max-width:560px){.grid,.kpis,.stage-strip{grid-template-columns:1fr}}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+  .panel h3{margin:0 0 4px;font-size:16px}
+  .panel .hint{font-size:12.5px;color:var(--muted);margin:0 0 14px}
+
+  /* triangle */
+  .tri-wrap{display:flex;flex-direction:column;align-items:center}
+  svg.tri{width:100%;max-width:420px;height:auto;overflow:visible}
+  .tri polygon{stroke:#fff;stroke-width:3;cursor:pointer;transition:opacity .15s,filter .15s}
+  .tri polygon:hover{filter:brightness(1.06)}
+  .tri text{font-size:10.5px;font-weight:800;fill:#1f2433;pointer-events:none;text-anchor:middle;letter-spacing:.2px}
+  .tri text.lite{fill:#aeb4c6}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:14px;font-size:12px;color:var(--muted)}
+  .legend i{width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px}
+
+  /* classify selector */
+  .stages{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:6px}
+  .stage-opt{border:1.5px solid var(--line);background:#fff;border-radius:11px;padding:10px 6px;text-align:center;font-weight:700;font-size:12.5px;color:var(--muted)}
+  .stage-opt small{display:block;font-weight:600;font-size:10px;margin-top:3px;color:#9aa1b5}
+  .stage-opt.on{border-color:var(--slate);background:#eef1fb;color:var(--slate)}
+  .stage-opt:hover{border-color:var(--slate)}
+
+  /* role list */
+  .role-list{display:flex;flex-direction:column;gap:9px}
+  .role{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:11px;padding:11px 13px;background:#fff}
+  .role .dot{width:11px;height:11px;border-radius:50%;flex:none}
+  .role .nm{font-weight:700;font-size:14px}
+  .role .who{font-size:12.5px;color:var(--muted)}
+  .role .right{margin-left:auto;display:flex;gap:7px;align-items:center}
+  .pri{font-size:9.5px;font-weight:800;letter-spacing:.4px;padding:3px 7px;border-radius:6px;text-transform:uppercase}
+  .pri.p{background:#fdeede;color:#c07b16}
+  .pri.n{background:#eef0fa;color:#5b6a9e}
+  .role.future{opacity:.5}
+  .chip-assigned{font-size:12px;font-weight:700;color:var(--good)}
+  .chip-pending{font-size:12px;font-weight:700;color:var(--warn)}
+
+  /* children list */
+  .child{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:11px;padding:12px 14px;background:#fff;cursor:pointer}
+  .child:hover{border-color:var(--slate);background:#fafbff}
+  .child .nm{font-weight:700}
+  .child .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+  /* modal */
+  .scrim{position:fixed;inset:0;background:rgba(20,24,38,.45);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+  .scrim.show{display:flex}
+  .modal{background:#fff;border-radius:16px;max-width:540px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:90vh;overflow:auto}
+  .modal .mh{padding:20px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+  .modal .mh h3{margin:0;font-size:18px}
+  .modal .mb{padding:20px 22px}
+  .modal .mf{padding:16px 22px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;background:#fafbff;border-radius:0 0 16px 16px}
+  label.fld{display:block;margin:0 0 12px}
+  label.fld span{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:5px}
+  input,select,textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;font-family:inherit;background:#fff}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--slate)}
+  .x{margin-left:auto;border:none;background:#f0f1f6;width:30px;height:30px;border-radius:8px;font-size:16px;color:var(--muted)}
+
+  /* role detail / toolkit */
+  .resp{display:flex;flex-direction:column;gap:9px;margin:6px 0 0}
+  .resp .it{display:flex;gap:10px;align-items:flex-start;font-size:13.5px}
+  .resp .it b{color:var(--slate);font-weight:800}
+  .kv{display:flex;gap:8px;font-size:13.5px;margin:7px 0}
+  .kv .k{color:var(--muted);font-weight:700;min-width:120px}
+  .toolkit{background:#f3f5fc;border:1px solid #e2e7f5;border-radius:11px;padding:14px;margin-top:10px}
+  .toolkit a{color:var(--slate);font-weight:700;text-decoration:none}
+  .toolkit a:hover{text-decoration:underline}
+  .banner{background:linear-gradient(120deg,#eef1fb,#e7f4f1);border:1px solid #e2e7f5;border-radius:var(--radius);padding:18px 20px;margin:18px 0}
+  .banner b{color:var(--slate)}
+  .note{font-size:12.5px;color:var(--muted);background:#fff8e9;border:1px solid #f3e3bd;padding:10px 12px;border-radius:10px;margin-top:12px}
+  .empty{color:var(--muted);font-size:14px;padding:18px;border:1.5px dashed var(--line);border-radius:12px;text-align:center}
+  .people{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media(max-width:680px){.people{grid-template-columns:1fr 1fr}}
+  .person{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--shadow)}
+  .person .av{width:38px;height:38px;border-radius:50%;background:var(--slate);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+  .person .nm{font-weight:700;margin-top:8px}
+  .person .rl{font-size:12.5px;color:var(--muted)}
+  .person .loc{font-size:11.5px;color:#9aa1b5;margin-top:3px}
+  footer.ft{color:#9aa1b5;font-size:12px;text-align:center;margin-top:40px}
+
+  /* auth gate */
+  .gate{position:fixed;inset:0;z-index:80;background:linear-gradient(160deg,#eef1fb,#e7f4f1);display:flex;align-items:center;justify-content:center;padding:20px}
+  .gatecard{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 70px rgba(31,36,51,.18);width:100%;max-width:380px;padding:30px 28px;text-align:center}
+  .gatecard .glogo{display:flex;justify-content:center}
+  .gatecard h2{font-size:22px;letter-spacing:-.4px;margin:6px 0 2px}
+  .gsub{color:var(--muted);font-size:13.5px;margin:0 0 18px}
+  .gatecard .fld{text-align:left}
+  .gerr{color:#b14040;font-size:12.5px;min-height:18px;margin:2px 0 8px;text-align:left}
+  .grow{margin-top:14px;font-size:12.5px}
+  .grow a{color:var(--slate);font-weight:700;cursor:pointer}
+  .grow a:hover{text-decoration:underline}
+  #whoami{font-size:12.5px;color:var(--muted);font-weight:700;align-self:center;margin-left:4px}
+  #syncDot{font-size:11.5px;font-weight:700;align-self:center;margin-left:2px}
+  #logoutBtn{color:#b14040 !important;border-color:#e3b1b1 !important}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <div class="logo">
+      <svg class="mk" viewBox="0 0 100 90"><polygon points="50,4 96,86 4,86" fill="#5b6a9e"/><polygon points="50,4 73,45 27,45" fill="#a9d6d6"/></svg>
+      Isha Karnataka
+    </div>
+    <nav class="nav" id="nav">
+      <button data-view="home" class="active">Region & Dashboard</button>
+      <button data-view="roles">Roles &amp; Responsibilities</button>
+      <button data-view="people">People</button>
+      <span id="syncDot" style="display:none">●</span>
+      <span id="whoami" style="display:none"></span>
+      <button id="logoutBtn" style="display:none">Log out</button>
+    </nav>
+  </div>
+</header>
+
+<div class="gate" id="gate"><div class="gatecard" id="gatecard"></div></div>
+
+<div class="wrap" id="app"></div>
+
+<div class="scrim" id="scrim"><div class="modal" id="modal"></div></div>
+
+<footer class="ft">Isha Karnataka · interactive prototype · data lives in your browser session — edit freely</footer>
+
+<script>
+/* =========================================================================
+   ROLE LIBRARY  (names from your model; responsibilities/POC/toolkit are
+   editable placeholders — correct them once you see them live)
+   ========================================================================= */
+const PRIORITY = ['nurturing','programs','promotions']; // the 3 corners
+
+const ROLES = {
+  nurturing:  { name:'Nurturing',   color:'#5b6a9e', priority:true,
+    blurb:'The heart of the centre — cares for every member and keeps people connected.',
+    resp:['Welcome & onboard new members','Run regular check-ins and follow-ups','Track attendance & wellbeing','Escalate member needs to the Coordinator'],
+    poc:'Centre Coordinator', tool:'ClickUp — Attendance & Care board', link:'https://app.clickup.com/' },
+  programs:   { name:'Programs',    color:'#5b6a9e', priority:true,
+    blurb:'Plans and runs the activities that bring the centre to life.',
+    resp:['Design the weekly / monthly program calendar','Coordinate facilitators & speakers','Own logistics for each session','Collect feedback and improve'],
+    poc:'Centre Coordinator', tool:'ClickUp — Calendar Planning board', link:'https://app.clickup.com/' },
+  promotions: { name:'Promotions',  color:'#5b6a9e', priority:true,
+    blurb:'Grows reach and visibility so more people find the centre.',
+    resp:['Promote programs locally & online','Run WhatsApp / social outreach','Create flyers & creatives','Drive new registrations'],
+    poc:'Centre Coordinator', tool:'ClickUp — Outreach board / Canva', link:'https://app.clickup.com/' },
+  relations:  { name:'Relations',   color:'#7a93c4', priority:false,
+    blurb:'Builds partnerships and keeps the community fabric strong.',
+    resp:['Liaise with RWAs, local bodies & partners','Manage volunteer relationships','Resolve conflicts & gather goodwill'],
+    poc:'Centre Coordinator', tool:'ClickUp — Partnerships board', link:'https://app.clickup.com/' },
+  registration:{ name:'Registration', color:'#7a93c4', priority:false,
+    blurb:'Owns sign-ups and clean entry of every participant.',
+    resp:['Manage event & program registrations','Maintain participant lists','Coordinate closely with Database'],
+    poc:'Database Lead', tool:'ClickUp — Registration forms', link:'https://app.clickup.com/' },
+  database:   { name:'Database',    color:'#a9d6d6', priority:false,
+    blurb:'The single source of truth for member and centre data.',
+    resp:['Maintain the member database','Ensure data hygiene & privacy','Generate reports for the team'],
+    poc:'Centre Coordinator', tool:'ClickUp / Google Sheets', link:'https://app.clickup.com/' },
+  temple:     { name:'Temple',      color:'#7a93c4', priority:false,
+    blurb:'Oversees spiritual and temple activities.',
+    resp:['Coordinate rituals & festivals','Manage temple logistics','Schedule seva volunteers'],
+    poc:'Centre Coordinator', tool:'ClickUp — Temple calendar', link:'https://app.clickup.com/' },
+  finance:    { name:'Finance',     color:'#a9d6d6', priority:false,
+    blurb:'Manages money, donations and transparent accounts.',
+    resp:['Track income & expenses','Manage donations & receipts','Prepare budgets & monthly reports'],
+    poc:'Centre Coordinator', tool:'ClickUp — Finance tracker', link:'https://app.clickup.com/' },
+  biksha:     { name:'Biksha',      color:'#7a93c4', priority:false,
+    blurb:'Manages prasadam, meals and seva offerings.',
+    resp:['Plan biksha / meals for programs','Coordinate supplies & volunteers','Manage seva contributions'],
+    poc:'Centre Coordinator', tool:'ClickUp — Biksha board', link:'https://app.clickup.com/' },
+};
+const ROLE_ORDER = ['nurturing','relations','registration','database','programs','temple','finance','biksha','promotions'];
+
+/* Which roles each stage requires */
+const STAGE_ROLES = {
+  micro:  ['nurturing'],
+  sub:    ['nurturing','programs','promotions'],
+  centre: ROLE_ORDER.slice(),
+  super:  ROLE_ORDER.slice(),
+  sector: [] // sectors aggregate centres; no roles of their own
+};
+const STAGE_META = {
+  micro:  {label:'Micro-centre', tag:'micro',  need:'Nurturer only',           min:'e.g. an apartment or small area'},
+  sub:    {label:'Sub-centre',   tag:'sub',    need:'3 core roles',            min:'Nurturing · Programs · Promotions'},
+  centre: {label:'Centre',       tag:'centre', need:'All 9 roles',            min:'Full-fledged centre'},
+  super:  {label:'Super-centre', tag:'super',  need:'9 roles + sub-roles',    min:'Each role has a team beneath it'},
+  sector: {label:'Sector',       tag:'sector', need:'Group of centres',       min:'A mature centre promoted to sector'},
+};
+const STAGE_SEQ = ['micro','sub','centre','super','sector'];
+
+/* Triangle geometry — 9 sub-triangles mapped to roles (matches your diagram) */
+const TRI = {
+  nurturing:   '150,0 100,86.6 200,86.6',
+  registration:'100,86.6 50,173.2 150,173.2',
+  relations:   '100,86.6 200,86.6 150,173.2',
+  database:    '200,86.6 150,173.2 250,173.2',
+  programs:    '50,173.2 0,259.8 100,259.8',
+  temple:      '50,173.2 150,173.2 100,259.8',
+  finance:     '150,173.2 100,259.8 200,259.8',
+  biksha:      '150,173.2 250,173.2 200,259.8',
+  promotions:  '250,173.2 200,259.8 300,259.8',
+};
+const TRI_LABEL = { /* label centroids */
+  nurturing:[150,64],registration:[100,150],relations:[150,123],database:[200,150],
+  programs:[50,237],temple:[100,196],finance:[150,237],biksha:[200,196],promotions:[250,237]
+};
+
+/* =========================================================================
+   SEED DATA  — Karnataka region tree
+   Each node: {id,name,kind:'region'|'sector'|'place', stage, assign:{role:person}, children:[]}
+   ========================================================================= */
+let UID = 1; const nid = () => 'n'+(UID++);
+function node(name, kind, stage, assign, children){
+  return {id:nid(), name, kind, stage, assign:assign||{}, children:children||[]};
+}
+
+/* centre entry: a plain string, or {n, stage, assign} for richer setup */
+function mk(c){
+  if(typeof c==='string') return node(c,'place','centre',{},[]);
+  return node(c.n,'place',c.stage||'centre',c.assign||{},[]);
+}
+function sec(name, centres, taluks){
+  const kids=centres.map(mk);
+  if(taluks) taluks.forEach(t=>kids.push(node(t,'place','sub',{},[])));
+  return node(name,'sector','sector',{},kids);
+}
+
+const STATE = node('Karnataka','region','region',{},[
+  sec('Chikkaballapur', ['Chikkaballapura','Doddaballapur','Chintamani','Bangalore Rural','Kolar','Ramanagar']),
+  sec('Mysuru',
+      ['Mysuru','Mandya','Chamarajanagar','Kodagu'],
+      ['Nanjanagud','Tovinakere','Napoklu','Bettadapura','Virajpet']),
+  sec('Mangaluru', ['Mangaluru','Udupi','Dakshina Kannada','Shivamoga']),
+  sec('Tumkur', ['Hassan','Tumkur','Chikmagalur','Tiptur']),
+  sec('North Karnataka', ['Belagavi','Hubballi-Dharwad','Kalaburagi','Vijayapura','Bagalkot',
+      'Ballari','Bidar','Chitradurga','Davanagere','Gadag','Koppal','Raichur',
+      'Uttara Kannada','Vijayanagara','Yadagiri']),
+  sec('Hebbal', [
+      {n:'Hebbal', assign:{nurturing:'Priya N.',programs:'Mohan D.',promotions:'Asha L.',relations:'Nikhil A.'}},
+      'Yelahanka','Bangalore Rural']),
+  sec('Indiranagar - Koramangala', [
+      'Banaswadi','Koramangala',
+      {n:'Indiranagar', assign:{nurturing:'Anjali R.',programs:'Ravi Kumar',promotions:'Meera S.'}},
+      'Budigere Cross']),
+  sec('Jayanagar - BG Road', [
+      'Bannerghatta Road',
+      {n:'Jayanagar', assign:{nurturing:'Deepa K.',programs:'Sneha P.'}},
+      'Kanakapura Road','Girinagar']),
+  sec('Marathahalli - Whitefield', ['Marathahalli','Whitefield']),
+  sec('Vijayanagar - Malleswaram - Ecity', ['Vijayanagar','Malleswaram','Ecity']),
+]);
+
+/* nav state */
+let VIEW = 'home';         // home | sector | place | roles | people
+let PATH = [];             // array of node ids from region down to current focus
+
+/* persistence is handled by the BACKEND + AUTH block at the bottom
+   (debounced cloud-save to your Google Sheet, or local preview mode) */
+
+/* ---- tree helpers ---- */
+function find(id, root=STATE){ if(root.id===id) return root; for(const c of root.children){ const f=find(id,c); if(f) return f; } return null; }
+function parentOf(id, root=STATE){ for(const c of root.children){ if(c.id===id) return root; const p=parentOf(id,c); if(p) return p; } return null; }
+function nodeByPath(){ return PATH.length? find(PATH[PATH.length-1]) : STATE; }
+
+function requiredRoles(n){ return STAGE_ROLES[n.stage]||[]; }
+function priorityRequired(n){ return requiredRoles(n).filter(r=>PRIORITY.includes(r)); }
+function assignedCount(n, roleSet){ return roleSet.filter(r=>n.assign[r]).length; }
+
+/* walk all "place" nodes (centres/sub/micro/super + promoted sectors) */
+function allPlaces(root=STATE, acc=[]){ for(const c of root.children){ if(c.kind==='place') acc.push(c); allPlaces(c,acc); } return acc; }
+function allSectors(){ return STATE.children.filter(c=>c.kind==='sector'); }
+
+/* dashboard metrics: PRIORITY roles only */
+function metrics(){
+  const places = allPlaces();
+  let need=0, got=0;
+  const byStage={micro:0,sub:0,centre:0,super:0,sector:0};
+  places.forEach(p=>{
+    if(byStage[p.stage]!==undefined) byStage[p.stage]++;
+    const pr = priorityRequired(p);
+    need += pr.length; got += assignedCount(p,pr);
+  });
+  // sectors created at region level
+  const sectorCount = allSectors().length + places.filter(p=>p.stage==='sector').length;
+  byStage.sector = sectorCount;
+  return {places:places.length, need, got, pending:need-got,
+          pct: need? Math.round(got/need*100):0, byStage};
+}
+
+/* people roster derived from assignments */
+function roster(){
+  const out=[];
+  allPlaces().forEach(p=>{
+    Object.entries(p.assign).forEach(([role,person])=>{
+      if(person) out.push({person,role,place:p.name,stage:p.stage});
+    });
+  });
+  return out;
+}
+
+/* =========================================================================
+   RENDER
+   ========================================================================= */
+const app = document.getElementById('app');
+const $ = (s,r=document)=>r.querySelector(s);
+
+function setNav(){ document.querySelectorAll('#nav button[data-view]').forEach(b=>{
+  b.classList.toggle('active', b.dataset.view===VIEW || (VIEW==='sector'||VIEW==='place')&&b.dataset.view==='home');
+});}
+
+function render(){
+  setNav(); save();
+  if(VIEW==='home')   return renderHome();
+  if(VIEW==='roles')  return renderRoles();
+  if(VIEW==='people') return renderPeople();
+  if(VIEW==='sector') return renderSector();
+  if(VIEW==='place')  return renderPlace();
+}
+
+function crumbs(){
+  let html='<div class="crumbs">';
+  html+=`<span class="c" onclick="go('home',[])">Karnataka</span>`;
+  let acc=[];
+  PATH.forEach((id,i)=>{
+    const n=find(id); acc=PATH.slice(0,i+1);
+    const view = n.kind==='sector' ? 'sector':'place';
+    const last = i===PATH.length-1;
+    html+=' › ';
+    html+= last ? `<b>${n.name}</b>` : `<span class="c" onclick='go("${view}",${JSON.stringify(acc)})'>${n.name}</span>`;
+  });
+  html+='</div>';
+  return html;
+}
+
+function progFor(n){
+  const pr=priorityRequired(n); const got=assignedCount(n,pr);
+  const pct = pr.length? Math.round(got/pr.length*100):0;
+  return {got,need:pr.length,pct};
+}
+
+/* ---------- HOME: region + dashboard + sectors ---------- */
+function renderHome(){
+  const m=metrics();
+  let h='';
+  h+=`<h1>Karnataka</h1><p class="sub">Top layer — pick a sector to drill in. The dashboard tracks <b>priority roles</b> (the three triangle corners) across every centre.</p>`;
+
+  h+=`<div class="kpis">
+    <div class="kpi"><div class="n">${m.byStage.sector}</div><div class="l">Sectors</div></div>
+    <div class="kpi"><div class="n">${m.places}</div><div class="l">Centres mapped</div><small>micro → super</small></div>
+    <div class="kpi"><div class="n">${m.got}<small> / ${m.need}</small></div><div class="l">Priority roles identified</div>
+      <div class="bar"><i style="width:${m.pct}%"></i></div></div>
+    <div class="kpi"><div class="n" style="color:var(--warn)">${m.pending}</div><div class="l">Priority roles pending</div></div>
+  </div>`;
+
+  h+=`<div class="stage-strip">`;
+  STAGE_SEQ.forEach(s=>{ h+=`<div class="stage-pill"><div class="n">${m.byStage[s]||0}</div><div class="l">${STAGE_META[s].label}s</div></div>`; });
+  h+=`</div>`;
+
+  h+=`<h2>Sectors</h2>`;
+  h+=`<div class="grid">`;
+  allSectors().forEach(s=>{
+    const places=allPlaces(s);
+    let need=0,got=0; places.forEach(p=>{const pr=priorityRequired(p);need+=pr.length;got+=assignedCount(p,pr);});
+    const pct=need?Math.round(got/need*100):0;
+    h+=`<div class="card click" onclick='go("sector",${JSON.stringify(PATH.concat(s.id))})'>
+      <span class="tag sector">Sector</span>
+      <h3>${s.name}</h3>
+      <div class="meta">${places.length} centre${places.length!==1?'s':''} inside</div>
+      <div class="foot"><div class="mini-prog">
+        <div class="lbl"><span>Priority roles</span><span>${got}/${need}</span></div>
+        <div class="bar"><i style="width:${pct}%"></i></div>
+      </div></div>
+    </div>`;
+  });
+  h+=`<button class="addcard" onclick="addSector()"><div style="font-size:26px;line-height:1">＋</div>Add sector</button>`;
+  h+=`</div>`;
+
+  h+=`<div class="banner">Ideal next step: replace these sector cards with a clickable <b>Karnataka map</b>. The data model already supports it — each sector is a node, so a map is just another way to render the same drill-in.</div>`;
+  app.innerHTML=h;
+}
+
+/* ---------- SECTOR: list centres ---------- */
+function renderSector(){
+  const s=nodeByPath();
+  let h=crumbs();
+  h+=`<h1>${s.name} <span class="tag sector" style="vertical-align:middle">Sector</span></h1>`;
+  h+=`<p class="sub">A sector is a group of centres. Open a centre to classify it, split it, or assign roles. You can also promote a mature centre into its own sector.</p>`;
+
+  const places=s.children.filter(c=>c.kind==='place');
+  h+=`<div class="grid">`;
+  places.forEach(p=>h+=placeCard(p));
+  h+=`<button class="addcard" onclick='addPlace("${s.id}")'><div style="font-size:26px;line-height:1">＋</div>Add centre</button>`;
+  h+=`</div>`;
+  app.innerHTML=h;
+}
+
+function placeCard(p){
+  const meta=STAGE_META[p.stage]; const pr=progFor(p);
+  const kids=p.children.length;
+  return `<div class="card click" onclick='go("place",${JSON.stringify(currentPathTo(p.id))})'>
+    <span class="tag ${meta.tag}">${meta.label}</span>
+    <h3>${p.name}</h3>
+    <div class="meta">${meta.need}${kids?` · ${kids} sub-entit${kids!==1?'ies':'y'}`:''}</div>
+    <div class="foot"><div class="mini-prog">
+      <div class="lbl"><span>Priority roles</span><span>${pr.got}/${pr.need}</span></div>
+      <div class="bar"><i style="width:${pr.pct}%"></i></div>
+    </div></div>
+  </div>`;
+}
+/* build a PATH array down to a node id */
+function currentPathTo(id){
+  const chain=[]; let cur=find(id);
+  while(cur && cur.id!==STATE.id){ chain.unshift(cur.id); cur=parentOf(cur.id); }
+  return chain;
+}
+
+/* ---------- PLACE (centre/sub/micro/super): classify, triangle, roles, split ---------- */
+function renderPlace(){
+  const n=nodeByPath();
+  const meta=STAGE_META[n.stage];
+  let h=crumbs();
+  h+=`<div class="row" style="margin-top:6px"><h1 style="margin:0">${n.name}</h1><span class="tag ${meta.tag}" style="align-self:center">${meta.label}</span></div>`;
+  h+=`<p class="sub">Classify where this entity stands today, see the roles that unlock at each stage, assign people, and split it into smaller centres when you're ready.</p>`;
+
+  h+=`<div class="split">`;
+
+  /* LEFT: classify + triangle */
+  h+=`<div class="panel tri-wrap">
+    <h3 style="align-self:flex-start">1 · Classify this entity</h3>
+    <p class="hint" style="align-self:flex-start">What level is it right now? Roles unlock automatically as you move up.</p>
+    <div class="stages" style="width:100%">`;
+  STAGE_SEQ.forEach(s=>{
+    h+=`<div class="stage-opt ${n.stage===s?'on':''}" onclick='setStage("${n.id}","${s}")'>
+      ${STAGE_META[s].label.replace('-centre','-c.').replace('Super-c.','Super')}
+      <small>${s==='micro'?'1 role':s==='sub'?'3 roles':s==='centre'?'9 roles':s==='super'?'9 + teams':'group'}</small>
+    </div>`;
+  });
+  h+=`</div>`;
+  h+= triangleSVG(n);
+  h+=`<div class="legend">
+    <span><i style="background:var(--good)"></i>Assigned</span>
+    <span><i style="background:#cfd4e3"></i>Needed · pending</span>
+    <span><i style="background:#eef0f6;border:1px solid #e2e5ee"></i>Future stage</span>
+  </div>`;
+  if(n.stage==='super') h+=`<div class="note" style="width:100%">Super-centre: each of the 9 roles can hold a <b>team of sub-roles</b>. In this prototype we track the 9 leads; sub-roles are the next build step.</div>`;
+  if(n.stage==='sector') h+=`<div class="note" style="width:100%">You've promoted this to a <b>Sector</b>. It now groups centres rather than holding its own roles — add centres below.</div>`;
+  h+=`</div>`;
+
+  /* RIGHT: roles + actions */
+  h+=`<div>`;
+  if(n.stage==='sector'){
+    h+=`<div class="panel"><h3>Centres in this sector</h3><p class="hint">This entity graduated to a sector. Add the centres that sit under it.</p>`;
+    h+= childrenBlock(n,'centre');
+    h+=`</div>`;
+  } else {
+    h+=`<div class="panel"><h3>2 · Roles for a ${meta.label}</h3>
+      <p class="hint">Priority roles count toward the dashboard. Next-level roles plug in as the centre matures — click any role to open its toolkit & assign a person.</p>
+      <div class="role-list">`;
+    const req=requiredRoles(n);
+    ROLE_ORDER.forEach(rk=>{
+      const r=ROLES[rk]; const active=req.includes(rk); const who=n.assign[rk];
+      const dot = who?'var(--good)':(active?'var(--warn)':'#cfd4e3');
+      h+=`<div class="role ${active?'':'future'}" onclick='openRole("${n.id}","${rk}")'>
+        <span class="dot" style="background:${dot}"></span>
+        <div>
+          <div class="nm">${r.name}</div>
+          <div class="who">${who?who:(active?'Not yet identified':'Unlocks at higher stage')}</div>
+        </div>
+        <div class="right">
+          <span class="pri ${r.priority?'p':'n'}">${r.priority?'Priority':'Next-level'}</span>
+          ${who?'<span class="chip-assigned">✓</span>':(active?'<span class="chip-pending">●</span>':'')}
+        </div>
+      </div>`;
+    });
+    h+=`</div></div>`;
+
+    /* clusters / nest + promote */
+    h+=`<div class="panel" style="margin-top:18px">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <h3 style="margin:0">3 · Map clusters (sub-areas)</h3>
+        <button class="btn ghost sm" onclick='setStage("${n.id}","sector")'>↑ Make this a Sector</button>
+      </div>
+      <p class="hint">Map this centre's sub-areas as named clusters, and classify each as a micro / sub / full-fledged / super centre — every cluster is its own entity you can grow. When this centre matures, make it a Sector and these clusters become its centres.</p>`;
+    h+= childrenBlock(n,'place');
+    h+=`</div>`;
+  }
+  h+=`</div>`; // right
+  h+=`</div>`; // split
+  app.innerHTML=h;
+}
+
+function childrenBlock(n, mode){
+  const isSector = mode==='centre';
+  const unit = isSector ? 'centre' : 'cluster';
+  let h='';
+  if(n.children.length===0){
+    h+=`<div class="empty">No ${unit}s ${isSector?'added':'mapped'} yet.</div>`;
+  } else {
+    n.children.forEach(c=>{
+      const meta=STAGE_META[c.stage]; const pr=progFor(c);
+      h+=`<div class="child" onclick='go("place",${JSON.stringify(currentPathTo(c.id))})'>
+        <span class="tag ${meta.tag}">${meta.label}</span>
+        <div class="nm">${c.name}</div>
+        <div class="right">
+          <span class="who" style="font-size:12px;color:var(--muted)">${pr.need?`${pr.got}/${pr.need} priority`:'group'}</span>
+          <span style="color:#c4cadd">›</span>
+        </div>
+      </div>`;
+    });
+  }
+  h+=`<div class="row" style="margin-top:12px">
+        <button class="btn sm" onclick='addPlace("${n.id}")'>＋ ${isSector?'Add centre':'Map a cluster'}</button>
+        ${!isSector?`<button class="btn ghost sm" onclick='splitInto("${n.id}")'>Quick-split into 3 clusters</button>`:''}
+      </div>`;
+  return h;
+}
+
+/* ---------- triangle SVG ---------- */
+function triangleSVG(n){
+  const req=requiredRoles(n);
+  let h='<svg class="tri" viewBox="-6 -6 312 272">';
+  ROLE_ORDER.forEach(rk=>{
+    const r=ROLES[rk]; const active=req.includes(rk); const who=n.assign[rk];
+    let fill='#eef0f6'; // future
+    if(active) fill = who ? r.color : '#cfd4e3';
+    const op = active?1:.55;
+    h+=`<polygon points="${TRI[rk]}" fill="${fill}" opacity="${op}" onclick='openRole("${n.id}","${rk}")'>
+        <title>${r.name}${who?' — '+who:active?' — pending':' — future'}</title></polygon>`;
+  });
+  ROLE_ORDER.forEach(rk=>{
+    const r=ROLES[rk]; const active=req.includes(rk); const [x,y]=TRI_LABEL[rk];
+    const lab = r.name.toUpperCase();
+    h+=`<text x="${x}" y="${y}" class="${active?'':'lite'}">${lab.length>10?lab.slice(0,9)+'…':lab}</text>`;
+  });
+  h+='</svg>';
+  return h;
+}
+
+/* ---------- ROLES reference page ---------- */
+function renderRoles(){
+  let h=`<h1>Roles &amp; Responsibilities</h1>
+  <p class="sub">The toolkit every onboarded team member sees. Priority roles (the triangle corners) are required even for the smallest centre; next-level roles plug in as a centre matures.</p>`;
+  h+=`<div class="grid">`;
+  ROLE_ORDER.forEach(rk=>{
+    const r=ROLES[rk];
+    h+=`<div class="card">
+      <div class="row"><span class="dot" style="width:12px;height:12px;border-radius:50%;background:${r.color};display:inline-block"></span>
+        <h3 style="margin:0">${r.name}</h3>
+        <span class="pri ${r.priority?'p':'n'}" style="margin-left:auto">${r.priority?'Priority':'Next-level'}</span></div>
+      <div class="meta" style="margin:8px 0 10px">${r.blurb}</div>
+      <div class="resp">${r.resp.map(x=>`<div class="it"><b>›</b><span>${x}</span></div>`).join('')}</div>
+      <div class="toolkit"><div class="kv"><span class="k">POC</span><span>${r.poc}</span></div>
+        <div class="kv"><span class="k">Toolkit</span><span><a href="${r.link}" target="_blank">${r.tool} ↗</a></span></div></div>
+    </div>`;
+  });
+  h+=`</div>`;
+  h+=`<div class="banner">Future build: make each responsibility <b>measurable</b> (targets + check-ins), and turn each toolkit into a live ClickUp template the role-holder can launch in one click.</div>`;
+  app.innerHTML=h;
+}
+
+/* ---------- PEOPLE page ---------- */
+function renderPeople(){
+  const r=roster();
+  let h=`<h1>People on the platform</h1>
+  <p class="sub">Everyone onboarded into a role. Each person gets access to this repository and can see who else is in the network.</p>`;
+  if(r.length===0){ h+=`<div class="empty">No one assigned yet — open a centre and assign roles.</div>`; app.innerHTML=h; return; }
+  h+=`<div class="people">`;
+  r.forEach(x=>{
+    const role=ROLES[x.role];
+    const initials=x.person.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    h+=`<div class="person"><div class="av" style="background:${role.color}">${initials}</div>
+      <div class="nm">${x.person}</div>
+      <div class="rl">${role.name} <span class="pri ${role.priority?'p':'n'}" style="margin-left:4px">${role.priority?'Priority':'Next'}</span></div>
+      <div class="loc">${x.place} · ${STAGE_META[x.stage].label}</div></div>`;
+  });
+  h+=`</div>`;
+  app.innerHTML=h;
+}
+
+/* =========================================================================
+   ACTIONS
+   ========================================================================= */
+function go(view, path){ VIEW=view; PATH=path||[]; window.scrollTo(0,0); render(); }
+document.querySelectorAll('#nav button[data-view]').forEach(b=>b.onclick=()=>go(b.dataset.view, []));
+
+function setStage(id, stage){ const n=find(id); n.stage=stage; render(); }
+
+function addSector(){
+  modalForm('Add a sector',[{k:'name',label:'Sector name',ph:'e.g. Marathahalli'}],(v)=>{
+    if(!v.name) return;
+    STATE.children.push(node(v.name,'sector','sector',{},[]));
+    render();
+  });
+}
+
+function addPlace(parentId){
+  const p=find(parentId);
+  const isSector = p.stage==='sector';
+  const opts = STAGE_SEQ.map(s=>`<option value="${s}">${STAGE_META[s].label} — ${STAGE_META[s].need}</option>`).join('');
+  modalForm(isSector?`Add a centre under ${p.name}`:`Map a cluster under ${p.name}`,[
+    {k:'name',label:isSector?'Centre name':'Cluster (sub-area) name',ph:'e.g. Begur'},
+    {k:'stage',label:'Classify as',select:opts,val:'centre'}
+  ],(v)=>{
+    if(!v.name) return;
+    p.children.push(node(v.name,'place',v.stage||'centre',{},[]));
+    render();
+  });
+}
+
+function splitInto(id){
+  const n=find(id);
+  modalForm(`Split ${n.name} into 3 clusters`,[
+    {k:'a',label:'Cluster 1 name',ph:'e.g. Begur'},
+    {k:'b',label:'Cluster 2 name',ph:'e.g. Neeladri'},
+    {k:'c',label:'Cluster 3 name',ph:'e.g. Konappana Agrahara'},
+    {k:'stage',label:'Envisioned level for each',select:STAGE_SEQ.map(s=>`<option value="${s}">${STAGE_META[s].label}</option>`).join(''),val:'centre'}
+  ],(v)=>{
+    [v.a,v.b,v.c].filter(Boolean).forEach(nm=> n.children.push(node(nm,'place',v.stage||'centre',{},[])));
+    render();
+  });
+}
+
+/* role detail + assign modal */
+function openRole(placeId, roleKey){
+  const n=find(placeId); const r=ROLES[roleKey];
+  const active=requiredRoles(n).includes(roleKey);
+  const who=n.assign[roleKey]||'';
+  let body=`
+    <div class="row" style="margin-bottom:6px">
+      <span class="pri ${r.priority?'p':'n'}">${r.priority?'Priority role':'Next-level role'}</span>
+      ${active?'':'<span class="pri n">Unlocks at a higher stage</span>'}
+    </div>
+    <p style="margin:4px 0 14px;color:var(--muted);font-size:14px">${r.blurb}</p>
+    <div style="font-weight:800;font-size:13px;margin-bottom:6px">First-step toolkit</div>
+    <div class="resp">${r.resp.map(x=>`<div class="it"><b>›</b><span>${x}</span></div>`).join('')}</div>
+    <div class="toolkit">
+      <div class="kv"><span class="k">Point of contact</span><span>${r.poc}</span></div>
+      <div class="kv"><span class="k">Toolkit</span><span><a href="${r.link}" target="_blank">${r.tool} ↗</a></span></div>
+    </div>
+    <label class="fld" style="margin-top:16px"><span>Assign a person</span>
+      <input id="assignName" value="${who.replace(/"/g,'&quot;')}" placeholder="Type a name to identify this role"/></label>
+    ${active?'':'<div class="note">This role isn\'t required at the current stage. Assigning it still works — it\'ll count once you classify the centre higher.</div>'}
+  `;
+  showModal(r.name, body, [
+    who?`<button class="btn danger" onclick='clearRole("${placeId}","${roleKey}")'>Remove</button>`:'',
+    `<button class="btn ghost" onclick="closeModal()">Cancel</button>`,
+    `<button class="btn" onclick='saveRole("${placeId}","${roleKey}")'>Save</button>`
+  ].join(''), r.color);
+}
+function saveRole(placeId, roleKey){ const v=$('#assignName').value.trim(); const n=find(placeId);
+  if(v) n.assign[roleKey]=v; else delete n.assign[roleKey]; closeModal(); render(); }
+function clearRole(placeId, roleKey){ delete find(placeId).assign[roleKey]; closeModal(); render(); }
+
+/* =========================================================================
+   MODAL plumbing
+   ========================================================================= */
+const scrim=document.getElementById('scrim'), modal=document.getElementById('modal');
+function showModal(title, bodyHTML, footHTML, color){
+  modal.innerHTML=`<div class="mh"><span style="width:14px;height:14px;border-radius:4px;background:${color||'var(--slate)'}"></span>
+    <h3>${title}</h3><button class="x" onclick="closeModal()">×</button></div>
+    <div class="mb">${bodyHTML}</div><div class="mf">${footHTML}</div>`;
+  scrim.classList.add('show');
+}
+function closeModal(){ scrim.classList.remove('show'); }
+scrim.addEventListener('click',e=>{ if(e.target===scrim) closeModal(); });
+
+function modalForm(title, fields, onSave){
+  const body=fields.map(f=>{
+    if(f.select) return `<label class="fld"><span>${f.label}</span><select id="f_${f.k}">${f.select}</select></label>`;
+    return `<label class="fld"><span>${f.label}</span><input id="f_${f.k}" placeholder="${f.ph||''}" value="${f.val||''}"/></label>`;
+  }).join('');
+  showModal(title, body, `<button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" id="mSave">Save</button>`);
+  fields.forEach(f=>{ if(f.val&&$('#f_'+f.k)) $('#f_'+f.k).value=f.val; });
+  $('#mSave').onclick=()=>{ const v={}; fields.forEach(f=>v[f.k]=$('#f_'+f.k).value.trim()); closeModal(); onSave(v); };
+}
+
+/* =========================================================================
+   BACKEND (Google Apps Script web app) + PER-USER AUTH
+   ========================================================================= */
+let API_URL='', TOKEN='', UNAME='';
+try{ API_URL=localStorage.getItem('isha_api')||''; TOKEN=localStorage.getItem('isha_token')||''; UNAME=localStorage.getItem('isha_name')||''; }catch(e){}
+
+const gate=document.getElementById('gate'), gatecard=document.getElementById('gatecard');
+function showGate(html){ gatecard.innerHTML=html; gate.style.display='flex'; }
+function hideGate(){ gate.style.display='none'; }
+const LOGO='<svg viewBox="0 0 100 90" width="34"><polygon points="50,4 96,86 4,86" fill="#5b6a9e"/><polygon points="50,4 73,45 27,45" fill="#a9d6d6"/></svg>';
+
+async function api(action, payload){
+  const body=JSON.stringify(Object.assign({action}, payload||{}));
+  const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body});
+  return await res.json();
+}
+
+function setSync(ok){ const el=document.getElementById('syncDot'); if(!el) return;
+  el.textContent = ok?'● Saved':'● Save failed'; el.style.color = ok?'var(--good)':'#b14040'; }
+
+/* debounced save — cloud when authed, else local preview */
+let saveTimer=null;
+function save(){
+  if(API_URL && TOKEN){
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(()=>{ api('save',{token:TOKEN,data:{state:STATE,uid:UID}})
+      .then(r=>setSync(r&&r.ok)).catch(()=>setSync(false)); }, 600);
+  } else { try{ localStorage.setItem('isha_local',JSON.stringify({state:STATE,uid:UID})); }catch(e){} }
+}
+
+function authUI(authed){
+  const lb=document.getElementById('logoutBtn'), who=document.getElementById('whoami'), sd=document.getElementById('syncDot');
+  lb.style.display = authed?'':'none';
+  who.style.display = authed?'':'none';
+  sd.style.display  = authed?'':'none';
+  if(authed){ who.textContent='Hi, '+(UNAME||'').split(' ')[0]; setSync(true); }
+}
+
+/* ---- SETUP: paste the deployed /exec URL ---- */
+function showSetup(){
+  showGate(`<div class="glogo">${LOGO}</div><h2>Isha Karnataka</h2>
+    <p class="gsub">One-time setup — connect your Google Sheet backend.</p>
+    <label class="fld"><span>Web app URL (ends in /exec)</span>
+      <input id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec" value="${API_URL.replace(/"/g,'&quot;')}"/></label>
+    <div id="gerr" class="gerr"></div>
+    <button class="btn" style="width:100%" onclick="testSetup()">Connect</button>
+    <div class="grow"><a onclick="previewLocal()">Preview without backend →</a></div>`);
+}
+async function testSetup(){
+  const url=document.getElementById('apiUrl').value.trim(), err=document.getElementById('gerr');
+  if(!/^https:\/\/script\.google\.com\/.*\/exec$/.test(url)){ err.textContent='That doesn’t look like a /exec web-app URL.'; return; }
+  err.textContent='Connecting…'; API_URL=url;
+  try{ const r=await api('ping'); if(r&&r.ok){ try{localStorage.setItem('isha_api',url);}catch(e){} showLogin(); }
+       else err.textContent='Reached it, but got an unexpected reply. Re-check the deployment.'; }
+  catch(e){ err.textContent='Couldn’t reach the web app. Make sure access is set to “Anyone” and redeploy.'; }
+}
+
+/* ---- LOGIN (per-user) ---- */
+function showLogin(){
+  showGate(`<div class="glogo">${LOGO}</div><h2>Isha Karnataka</h2>
+    <p class="gsub">Sign in to continue.</p>
+    <label class="fld"><span>Username</span><input id="lu" autocomplete="username"/></label>
+    <label class="fld"><span>Password</span><input id="lp" type="password" autocomplete="current-password"/></label>
+    <div id="gerr" class="gerr"></div>
+    <button class="btn" style="width:100%" onclick="doLogin()">Log in</button>
+    <div class="grow"><a onclick="showSetup()">Backend settings</a></div>`);
+  setTimeout(()=>{ const e=document.getElementById('lp'); if(e) e.addEventListener('keydown',ev=>{ if(ev.key==='Enter') doLogin(); }); },0);
+}
+async function doLogin(){
+  const u=document.getElementById('lu').value.trim(), p=document.getElementById('lp').value, err=document.getElementById('gerr');
+  err.textContent='Signing in…';
+  try{ const r=await api('login',{username:u,password:p});
+    if(r&&r.ok){ TOKEN=r.token; UNAME=r.name||u;
+      try{ localStorage.setItem('isha_token',TOKEN); localStorage.setItem('isha_name',UNAME); }catch(e){}
+      await afterAuth(); }
+    else err.textContent=(r&&r.error)||'Login failed.'; }
+  catch(e){ err.textContent='Network error reaching the backend.'; }
+}
+async function doLogout(){
+  try{ if(TOKEN) await api('logout',{token:TOKEN}); }catch(e){}
+  TOKEN=''; UNAME=''; try{ localStorage.removeItem('isha_token'); localStorage.removeItem('isha_name'); }catch(e){}
+  authUI(false); showLogin();
+}
+
+async function afterAuth(){
+  try{
+    const r=await api('load',{token:TOKEN});
+    if(!r||!r.ok){ await doLogout(); return; }
+    if(r.data && r.data.state){ for(const k in STATE) delete STATE[k]; Object.assign(STATE, r.data.state); UID=r.data.uid||UID; }
+    else { await api('save',{token:TOKEN,data:{state:STATE,uid:UID}}); } // first run: seed the Sheet
+  }catch(e){ /* keep built-in seed if load fails */ }
+  authUI(true); hideGate(); render();
+}
+
+function previewLocal(){
+  API_URL=''; TOKEN='';
+  try{ const r=localStorage.getItem('isha_local'); if(r){ const o=JSON.parse(r); if(o&&o.state){ for(const k in STATE) delete STATE[k]; Object.assign(STATE,o.state); UID=o.uid||UID; } } }catch(e){}
+  authUI(false); hideGate(); render();
+}
+
+/* nav + boot */
+document.getElementById('logoutBtn').onclick=doLogout;
+async function boot(){
+  showGate('<p class="gsub" style="margin:34px 0">Loading…</p>');
+  if(!API_URL){ showSetup(); return; }
+  if(!TOKEN){ showLogin(); return; }
+  await afterAuth();
+}
+boot();
+</script>
+</body>
+</html>
