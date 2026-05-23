@@ -387,11 +387,16 @@ function metrics(){
 }
 
 /* people roster derived from assignments */
+/* ---------- person value helpers (back-compat: assign[r] may be a string or {name,mobile,profession}) ---------- */
+function personName(p){ if(!p) return ''; if(typeof p==='string') return p; return p.name||''; }
+function personMobile(p){ if(!p||typeof p==='string') return ''; return p.mobile||''; }
+function personProfession(p){ if(!p||typeof p==='string') return ''; return p.profession||''; }
+function personHas(p){ return !!personName(p); }
 function roster(){
   const out=[];
   allPlaces().forEach(p=>{
     Object.entries(p.assign).forEach(([role,person])=>{
-      if(person) out.push({person,role,place:p.name,stage:p.stage});
+      if(personHas(person)) out.push({person:personName(person), mobile:personMobile(person), profession:personProfession(person), role, place:p.name, stage:p.stage});
     });
   });
   return out;
@@ -562,13 +567,13 @@ function renderPlace(){
       <div class="role-list">`;
     const req=requiredRoles(n);
     ROLE_ORDER.forEach(rk=>{
-      const r=ROLES[rk]; const active=req.includes(rk); const who=n.assign[rk];
+      const r=ROLES[rk]; const active=req.includes(rk); const _whoVal=n.assign[rk]; const who=personName(_whoVal); const whoMobile=personMobile(_whoVal); const whoProf=personProfession(_whoVal);
       const dot = who?'var(--good)':(active?'var(--warn)':'#cfd4e3');
       h+=`<div class="role ${active?'':'future'}" onclick='openRole("${n.id}","${rk}")'>
         <span class="dot" style="background:${dot}"></span>
         <div>
           <div class="nm">${r.name}</div>
-          <div class="who">${who?who:(active?'Not yet identified':'Unlocks at higher stage')}</div>
+          <div class="who">${who?(who+(whoProf||whoMobile?` <span style="color:var(--muted);font-weight:500">· ${[whoProf,whoMobile].filter(Boolean).join(" · ")}</span>`:"")):(active?'Not yet identified':'Unlocks at higher stage')}</div>
         </div>
         <div class="right">
           <span class="pri ${(PRIORITY_BY_STAGE[n.stage]||[]).includes(rk)?'p':'n'}">${(PRIORITY_BY_STAGE[n.stage]||[]).includes(rk)?'Priority':'Next-level'}</span>
@@ -622,7 +627,7 @@ function triangleSVG(n){
   const req=requiredRoles(n);
   let h='<svg class="tri" viewBox="-6 -6 312 272">';
   ROLE_ORDER.forEach(rk=>{
-    const r=ROLES[rk]; const active=req.includes(rk); const who=n.assign[rk];
+    const r=ROLES[rk]; const active=req.includes(rk); const _whoVal2=n.assign[rk]; const who=personName(_whoVal2);
     let fill='#eef0f6'; // future
     if(active) fill = who ? r.color : '#cfd4e3';
     const op = active?1:.55;
@@ -669,11 +674,11 @@ function renderPeople(){
   h+=`<div class="people">`;
   r.forEach(x=>{
     const role=ROLES[x.role];
-    const initials=x.person.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const initials=(x.person||'').split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
     h+=`<div class="person"><div class="av" style="background:${role.color}">${initials}</div>
-      <div class="nm">${x.person}</div>
+      <div class="nm">${x.person}${x.profession?` <span style="color:var(--muted);font-weight:500;font-size:12px">· ${x.profession}</span>`:''}</div>
       <div class="rl">${role.name} <span class="pri ${role.priority?'p':'n'}" style="margin-left:4px">${role.priority?'Priority':'Next'}</span></div>
-      <div class="loc">${x.place} · ${STAGE_META[x.stage].label}</div></div>`;
+      <div class="loc">${x.place} · ${STAGE_META[x.stage].label}${x.mobile?` · <a href="tel:${x.mobile.replace(/[^0-9+]/g,'')}" style="color:inherit">📞 ${x.mobile}</a>`:''}</div></div>`;
   });
   h+=`</div>`;
   app.innerHTML=h;
@@ -747,7 +752,7 @@ function addPlace(parentId){
 function openRole(placeId, roleKey){
   const n=find(placeId); const r=ROLES[roleKey];
   const active=requiredRoles(n).includes(roleKey);
-  const who=n.assign[roleKey]||'';
+  const _w=n.assign[roleKey]; const who=personName(_w); const whoMobile=personMobile(_w); const whoProf=personProfession(_w);
   let body=`
     <div class="row" style="margin-bottom:6px">
       <span class="pri ${r.priority?'p':'n'}">${r.priority?'Priority role':'Next-level role'}</span>
@@ -760,8 +765,12 @@ function openRole(placeId, roleKey){
       <div class="kv"><span class="k">Point of contact</span><span>${r.poc}</span></div>
       <div class="kv"><span class="k">Toolkit</span><span><a href="${r.link}" target="_blank">${r.tool} ↗</a></span></div>
     </div>
-    <label class="fld" style="margin-top:16px"><span>Assign a person</span>
-      <input id="assignName" value="${who.replace(/"/g,'&quot;')}" placeholder="Type a name to identify this role"/></label>
+    <label class="fld" style="margin-top:16px"><span>Assign a person — full name</span>
+      <input id="assignName" value="${who.replace(/"/g,'&quot;')}" placeholder="e.g. Priya N."/></label>
+    <label class="fld" style="margin-top:10px"><span>Mobile number</span>
+      <input id="assignMobile" type="tel" inputmode="numeric" pattern="[0-9 +()-]{7,15}" value="${whoMobile.replace(/"/g,'&quot;')}" placeholder="e.g. +91 98xxxxxxxx"/></label>
+    <label class="fld" style="margin-top:10px"><span>Profession</span>
+      <input id="assignProfession" value="${whoProf.replace(/"/g,'&quot;')}" placeholder="e.g. Software engineer, Teacher, Doctor"/></label>
     ${active?'':'<div class="note">This role isn\'t required at the current stage. Assigning it still works — it\'ll count once you classify the centre higher.</div>'}
   `;
   showModal(r.name, body, [
@@ -770,8 +779,8 @@ function openRole(placeId, roleKey){
     `<button class="btn" onclick='saveRole("${placeId}","${roleKey}")'>Save</button>`
   ].join(''), r.color);
 }
-function saveRole(placeId, roleKey){ const v=$('#assignName').value.trim(); const n=find(placeId);
-  if(v) n.assign[roleKey]=v; else delete n.assign[roleKey]; closeModal(); render(); }
+function saveRole(placeId, roleKey){ const name=$('#assignName').value.trim(); const mobile=($('#assignMobile')?.value||'').trim(); const profession=($('#assignProfession')?.value||'').trim(); const n=find(placeId);
+  if(name){ n.assign[roleKey]={name, mobile, profession}; } else { delete n.assign[roleKey]; } closeModal(); render(); }
 function clearRole(placeId, roleKey){ delete find(placeId).assign[roleKey]; closeModal(); render(); }
 
 /* =========================================================================
