@@ -488,7 +488,7 @@ function renderSector(){
   const places=s.children.filter(c=>c.kind==='place');
   h+=`<div class="grid">`;
   places.forEach(p=>h+=placeCard(p));
-  h+=`<button class="addcard" onclick='addPlace("${s.id}")'><div style="font-size:26px;line-height:1">＋</div>Add centre</button><button class="addcard" style="color:#b14040;border-color:#e3b1b1" onclick='removeCentrePicker("${s.id}")'><div style="font-size:26px;line-height:1">−</div>Remove centre</button><button class="addcard" style="color:#3a4f93;border-color:#b4c2e6" onclick='showCentreAreas("${s.id}")'><div style="font-size:26px;line-height:1">⌖</div>Areas</button>`;
+  /* Add centre / Remove centre / Areas buttons moved into the centre view below */
   h+=`</div>`;
   app.innerHTML=h;
 }
@@ -612,7 +612,7 @@ function childrenBlock(n, mode){
     });
   }
   h+=`<div class="row" style="margin-top:12px">
-        <button class="btn sm" onclick='addPlace("${n.id}")'>＋ ${isSector?'Add centre':'Map a cluster'}</button>
+        <button class="btn sm" onclick='addPlace("${n.id}")'>＋ ${isSector?'Add centre':'Map a cluster'}</button>${isSector?`<button class="btn sm danger" style="margin-left:8px" onclick='removeCentrePicker("${n.id}")'>− Remove centre</button><button class="btn sm" style="margin-left:8px;color:#3a4f93;border-color:#b4c2e6" onclick='showCentreAreas("${n.id}")'>⌖ Areas</button>`:''}
       </div>`;
   return h;
 }
@@ -689,7 +689,30 @@ function setStage(id, stage){ const n=find(id); n.stage=stage; render(); }
 function removeNode(id){ const removeFrom=(arr)=>{ for(let i=0;i<arr.length;i++){ if(arr[i].id===id){ arr.splice(i,1); return true; } if(arr[i].children && removeFrom(arr[i].children)) return true; } return false; }; removeFrom(STATE.children); render(); }
 function removeCentrePicker(sectorId){ const s=find(sectorId); if(!s||!s.children||s.children.filter(c=>c.kind==='place').length===0){ alert('No centres to remove.'); return; } const places=s.children.filter(c=>c.kind==='place'); const list=places.map((c,i)=>(i+1)+'. '+c.name).join('\n'); const which=prompt('Type the number of the centre to remove:\n\n'+list); if(!which) return; const idx=parseInt(which,10)-1; const target=places[idx]; if(!target){ alert('Invalid selection.'); return; } if(!confirm('Remove "'+target.name+'" and all its sub-items? This cannot be undone.')) return; removeNode(target.id); }
 
-function showCentreAreas(id){ const n=find(id); if(!n){ alert('Centre not found.'); return; } let slug=(n.name||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'_'); while(slug.charAt(0)==='_') slug=slug.slice(1); while(slug.charAt(slug.length-1)==='_') slug=slug.slice(0,-1); const known=['hebbal','koramangala','indiranagar','whitefield','marathahalli','electronic_city','bannerghatta_road','jayanagar','kanakapura_road','malleswaram','vijayanagar','banaswadi','girinagar','budigere_cross']; const base='https://banglore-area-clusters.pallerlasuhruth08.workers.dev'; const url=known.indexOf(slug)>=0?base+'/combined_reports/'+slug+'_combined.html':base+'/'; window.open(url,'_blank'); }
+/* ---------- Centre -> Areas mapping (from Bangalore area clusters data) ---------- */
+const CENTRE_AREAS = {"hebbal":["Yelahanka","Vidyaranyapura","RT Nagar","Sahakar Nagar","Sanjaynagar","Jakkur","Thanisandra","Hebbal","Kempapura","Kodigehalli","Amruthahalli","Ganganagar","Doddaballapur","Kothanur","Nagavara","Dasarahalli","Coffee Board Layout","Anand Nagar","Bhuvaneshwari Nagar","Judicial Layout"],"koramangala":["HSR Layout","Sarjapur Road","Koramangala","Bellandur","BTM Layout","Adugodi","Tavarekere","Wilson Garden","Iblur","Hosur Road","Jayanagar","Agara","Jakkasandra","JP Nagar","ST Bed","Madiwala","Audugodi","Ejipura","Banashankari","Suddagunte"],"indiranagar":["Indiranagar","CV Raman Nagar","HAL","Halasuru","Domlur","Kaggadasapura","Old Airport Road","Murugeshpalya","Tippasandra","Vignan Nagar","Defence Colony","Jeevan Bhima Nagar","Vimanapura","Shivajinagar","Koramangala","MG Road","Murphy Town","Marathahalli","Binnamangala"],"whitefield":["Whitefield","Borewell Road","Ramagondanahalli","Varthur","Immadihalli","Kundalahalli","Channasandra","Brookefield","ITPL","Hopefarm","Marathahalli","Pattandur Agrahara","Kadugodi","EPIP","AECS Layout","Hoodi","KR Puram","Bellandur","Bhattarahalli","Doddanekundi"],"marathahalli":["Marathahalli","Whitefield","Kundalahalli","Varthur","Hoodi","Mahadevapura","Doddanekundi","AECS Layout","Brookefield","Panathur","ITPL","KR Puram","Munnekollal","Bellandur","Vibhutipura","HAL","Old Airport Road","Sarjapur","Spice Garden","Thubarahalli"],"electronic_city":["Electronic City","Electronic City Phase 1","Begur","Bommanahalli","BTM Layout","Singasandra","Chandapura","Kudlu","Akshayanagar","Electronic City Phase 2","Anekal","Madiwala","Attibele","Hosa Road","Hongasandra","Bommasandra","Huskur","HSR Layout","Yelenahalli","Hosur Road"],"bannerghatta_road":["JP Nagar","Bannerghatta Road","BTM Layout","Mico Layout","Bilekahalli","Arekere","Gottigere","Hulimavu","Jigani","Puttenahalli","Kammanahalli","Anjanapura","Begur","Jaraganahalli","Yelachenahalli","Meenakshi Layout","Akshayanagar","Banashankari","Bommanahalli","Jayanagar"],"jayanagar":["Jayanagar","Basavanagudi","Chamrajpet","Wilson Garden","Hanumanthnagar","VV Puram","Lalbagh","Mavalli","Gandhi Bazaar","JP Nagar","Sajjan Rao","Banashankari 3rd","Mount Joy","Banashankari","Wilson Gdn","Tilak Nagar","Banashankari 2nd","BTM Layout","Kanakapura Road","Koramangala"],"kanakapura_road":["Uttarahalli","Kanakapura Road","Subramanyapura","Konanakunte","Doddakallasandra","JP Nagar","Jayanagar","Banashankari","Thalaghattapura","Banashankari 6th","Vajarahalli","Anjanapura","Raghuvanahalli","Vasanthapura","Chikkalsandra","Kaggalipura","Padmanabhanagar","Talaghattapura","Vajra halli","Yelachenahalli"],"malleswaram":["Malleswaram","Rajajinagar","Yeshwanthpur","Mathikere","Nandini Layout","Mahalakshmi Layout","Seshadripuram","Sadashivanagar","Vyalikaval","Kumara Park","Vasanth Nagar","Palace Road","Gandhinagar","Cunningham Road","Jayanagar","Sampige Road","Basaveshwaranagar","Hebbal","Sanjaynagar","Devaiah Park"],"vijayanagar":["Rajarajeshwari Nagar","Vijayanagar","Nagarbhavi","Kengeri","Basaveshwaranagar","Chandra Layout","Magadi Road","Mysore Road","Hampinagar","Banashankari","Kamakshipalya","Vijayanagar 2nd","ITI Layout","Govindrajnagar","Rajajinagar","Gnanabharathi","Bapuji Nagar","Hosahalli","Cholurpalya"],"banaswadi":["Horamavu","Ramamurthy Nagar","Kalyan Nagar","Banaswadi","Kasturi Nagar","OMBR Layout","HBR Layout","HRBR","Kammanahalli","Hennur","Cox Town","Frazer Town","Babusapalya","Lingarajapuram","MS Nagar","Kacharakanahalli","Hennur Cross","KR Puram","Maruthi Sevanagar","Indiranagar"],"girinagar":["Banashankari","Banashankari 3rd","Girinagar","Padmanabhanagar","Hosakerehalli","Kathriguppe","Yediyur","Bhuvaneswari Nagar","Hanumanthnagar","Basavanagudi","Kengeri","Chamrajpet","Nagarbhavi","Rajarajeshwari Nagar","Talaghattapura","Gavipuram","Anjanapura"],"budigere_cross":["KR Puram","Budigere Cross","Hoskote","Battarahalli","Budigere","Avalahalli","Bidarahalli","Ramamurthy Nagar","Mandur","Whitefield","Hoodi","Kannamangala","Kadugodi","Belathur","Channasandra","ITPL"]};
+function _centreAreaSlug(name){ let s=(name||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'_'); while(s.charAt(0)==='_') s=s.slice(1); while(s.charAt(s.length-1)==='_') s=s.slice(0,-1); return s; }
+function showCentreAreas(id){
+  const n=find(id);
+  if(!n){ alert('Centre not found.'); return; }
+  const slug=_centreAreaSlug(n.name);
+  const aliasMap={ 'ecity':'electronic_city','electronic_city_phase_1':'electronic_city','electronic_city_phase_2':'electronic_city','kanakapura':'kanakapura_road','bannerghatta':'bannerghatta_road','budigere':'budigere_cross' };
+  const key = CENTRE_AREAS[slug] ? slug : (aliasMap[slug] || slug);
+  const areas = CENTRE_AREAS[key];
+  const base = 'https://banglore-area-clusters.pallerlasuhruth08.workers.dev';
+  let body;
+  if(areas && areas.length){
+    body = '<p class="hint">Localities and sub-areas mapped to <b>' + n.name + '</b> centre, sourced from the Bangalore area-clusters dataset.</p>'+
+           '<div class="area-grid" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">' +
+           areas.map(a=>'<span class="chip" style="display:inline-block;padding:6px 10px;border:1px solid #d8dceb;border-radius:14px;background:#f3f5fc;font-size:13px">'+a+'</span>').join('') +
+           '</div>'+
+           '<div class="kv" style="margin-top:14px"><span class="k">Open full report</span><span><a href="'+base+'/existing_meditators_reports/'+ n.name.replace(/ /g,'_') +'_Center_Locality_Cluster_Report.html" target="_blank">External cluster report ↗</a></span></div>';
+  } else {
+    body = '<p class="hint">No mapped areas available for <b>'+n.name+'</b>. You can still view this centre on the external Bangalore area-clusters site.</p>'+
+           '<div class="kv" style="margin-top:10px"><span class="k">External site</span><span><a href="'+base+'/" target="_blank">Bangalore area clusters ↗</a></span></div>';
+  }
+  showModal('Areas — ' + n.name, body, '<button class="btn ghost" onclick="closeModal()">Close</button>');
+}
 
 function addSector(){
   modalForm('Add a sector',[{k:'name',label:'Sector name',ph:'e.g. Marathahalli'}],(v)=>{
