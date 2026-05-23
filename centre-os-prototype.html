@@ -488,7 +488,7 @@ function renderSector(){
   const places=s.children.filter(c=>c.kind==='place');
   h+=`<div class="grid">`;
   places.forEach(p=>h+=placeCard(p));
-  h+=`<button class="addcard" onclick='addPlace("${s.id}")'><div style="font-size:26px;line-height:1">＋</div>Add centre</button><button class="addcard" style="color:#b14040;border-color:#e3b1b1" onclick='removeCentrePicker("${s.id}")'><div style="font-size:26px;line-height:1">−</div>Remove centre</button>`;
+  h+=`<button class="addcard" onclick='addPlace("${s.id}")'><div style="font-size:26px;line-height:1">＋</div>Add centre</button><button class="addcard" style="color:#b14040;border-color:#e3b1b1" onclick='removeCentrePicker("${s.id}")'><div style="font-size:26px;line-height:1">−</div>Remove centre</button><button class="addcard" style="color:#3a4f93;border-color:#b4c2e6" onclick='showCentreAreas("${s.id}")'><div style="font-size:26px;line-height:1">⌖</div>Areas</button>`;
   h+=`</div>`;
   app.innerHTML=h;
 }
@@ -688,6 +688,8 @@ document.querySelectorAll('#nav button[data-view]').forEach(b=>b.onclick=()=>go(
 function setStage(id, stage){ const n=find(id); n.stage=stage; render(); }
 function removeNode(id){ const removeFrom=(arr)=>{ for(let i=0;i<arr.length;i++){ if(arr[i].id===id){ arr.splice(i,1); return true; } if(arr[i].children && removeFrom(arr[i].children)) return true; } return false; }; removeFrom(STATE.children); render(); }
 function removeCentrePicker(sectorId){ const s=find(sectorId); if(!s||!s.children||s.children.filter(c=>c.kind==='place').length===0){ alert('No centres to remove.'); return; } const places=s.children.filter(c=>c.kind==='place'); const list=places.map((c,i)=>(i+1)+'. '+c.name).join('\n'); const which=prompt('Type the number of the centre to remove:\n\n'+list); if(!which) return; const idx=parseInt(which,10)-1; const target=places[idx]; if(!target){ alert('Invalid selection.'); return; } if(!confirm('Remove "'+target.name+'" and all its sub-items? This cannot be undone.')) return; removeNode(target.id); }
+
+function showCentreAreas(id){ const n=find(id); if(!n){ alert('Centre not found.'); return; } let slug=(n.name||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'_'); while(slug.charAt(0)==='_') slug=slug.slice(1); while(slug.charAt(slug.length-1)==='_') slug=slug.slice(0,-1); const known=['hebbal','koramangala','indiranagar','whitefield','marathahalli','electronic_city','bannerghatta_road','jayanagar','kanakapura_road','malleswaram','vijayanagar','banaswadi','girinagar','budigere_cross']; const base='https://banglore-area-clusters.pallerlasuhruth08.workers.dev'; const url=known.indexOf(slug)>=0?base+'/combined_reports/'+slug+'_combined.html':base+'/'; window.open(url,'_blank'); }
 
 function addSector(){
   modalForm('Add a sector',[{k:'name',label:'Sector name',ph:'e.g. Marathahalli'}],(v)=>{
