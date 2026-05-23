@@ -283,7 +283,7 @@ const STAGE_META = {
   micro:  {label:'Micro-centre', tag:'micro',  need:'Nurturer only',           min:'e.g. an apartment or small area'},
   sub:    {label:'Sub-centre',   tag:'sub',    need:'3 core roles',            min:'Nurturing · Programs · Promotions'},
   centre: {label:'Centre',       tag:'centre', need:'All 9 roles',            min:'Full-fledged centre'},
-  sector: {label:'Sector',       tag:'sector', need:'Group of centres',       min:'A mature centre promoted to sector'},
+  sector: {label:'Make this Sector',       tag:'sector', need:'Group of centres',       min:'A mature centre promoted to sector'},
 };
 const STAGE_SEQ = ['micro','sub','centre','sector'];
 
@@ -540,13 +540,6 @@ function renderPlace(){
     </div>`;
   });
   h+=`</div>`;
-  h+=`<div class="row" style="justify-content:flex-end;width:100%;margin-top:10px">
-    <button class="btn ghost sm" onclick='setStage("${n.id}","sector")' style="display:flex;align-items:center;gap:6px">
-      <svg width="13" height="13" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><path d="M7 1L13 10H10V13H4V10H1L7 1Z" fill="currentColor"/></svg>
-      Make this a Sector
-    </button>
-  </div>`;
-  h+= triangleSVG(n);
   h+=`<div class="legend">
     <span><i style="background:var(--good)"></i>Assigned</span>
     <span><i style="background:#cfd4e3"></i>Needed · pending</span>
@@ -766,11 +759,11 @@ function openRole(placeId, roleKey){
       <div class="kv"><span class="k">Toolkit</span><span><a href="${r.link}" target="_blank">${r.tool} ↗</a></span></div>
     </div>
     <label class="fld" style="margin-top:16px"><span>Assign a person — full name</span>
-      <input id="assignName" value="${who.replace(/"/g,'&quot;')}" placeholder="e.g. Priya N."/></label>
+      <input id="assignName" required value="${who.replace(/"/g,'&quot;')}" placeholder="e.g. Priya N."/></label>
     <label class="fld" style="margin-top:10px"><span>Mobile number</span>
-      <input id="assignMobile" type="tel" inputmode="numeric" pattern="[0-9 +()-]{7,15}" value="${whoMobile.replace(/"/g,'&quot;')}" placeholder="e.g. +91 98xxxxxxxx"/></label>
+      <input id="assignMobile" required type="tel" inputmode="numeric" pattern="[0-9 +()-]{7,15}" value="${whoMobile.replace(/"/g,'&quot;')}" placeholder="e.g. +91 98xxxxxxxx"/></label>
     <label class="fld" style="margin-top:10px"><span>Profession</span>
-      <input id="assignProfession" value="${whoProf.replace(/"/g,'&quot;')}" placeholder="e.g. Software engineer, Teacher, Doctor"/></label>
+      <input id="assignProfession" required value="${whoProf.replace(/"/g,'&quot;')}" placeholder="e.g. Software engineer, Teacher, Doctor"/></label>
     ${active?'':'<div class="note">This role isn\'t required at the current stage. Assigning it still works — it\'ll count once you classify the centre higher.</div>'}
   `;
   showModal(r.name, body, [
@@ -779,8 +772,8 @@ function openRole(placeId, roleKey){
     `<button class="btn" onclick='saveRole("${placeId}","${roleKey}")'>Save</button>`
   ].join(''), r.color);
 }
-function saveRole(placeId, roleKey){ const name=$('#assignName').value.trim(); const mobile=($('#assignMobile')?.value||'').trim(); const profession=($('#assignProfession')?.value||'').trim(); const n=find(placeId);
-  if(name){ n.assign[roleKey]={name, mobile, profession}; } else { delete n.assign[roleKey]; } closeModal(); render(); }
+function saveRole(placeId, roleKey){ const name=$('#assignName').value.trim(); const mobile=($('#assignMobile')?.value||'').trim(); const profession=($('#assignProfession')?.value||'').trim(); if(!name||!mobile||!profession){ alert('Please fill all fields: Name, Mobile number, and Profession are required.'); return; } const n=find(placeId);
+  n.assign[roleKey]={name, mobile, profession}; closeModal(); render(); }
 function clearRole(placeId, roleKey){ delete find(placeId).assign[roleKey]; closeModal(); render(); }
 
 /* =========================================================================
