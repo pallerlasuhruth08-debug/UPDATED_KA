@@ -772,7 +772,7 @@ function modalForm(title, fields, onSave){
 /* =========================================================================
    BACKEND (Google Apps Script web app) + PER-USER AUTH
    ========================================================================= */
-let API_URL='', TOKEN='', UNAME='';
+const DEFAULT_API_URL='https://script.google.com/macros/s/AKfycbzQs98Hsez1dLis5pEHZtAFjLbRk6l6Ccg6EtzulymXJHJlg-IeDsDVcRUtQU3tSPuo/exec'; let API_URL=DEFAULT_API_URL, TOKEN='', UNAME='';
 try{ API_URL=localStorage.getItem('isha_api')||''; TOKEN=localStorage.getItem('isha_token')||''; UNAME=localStorage.getItem('isha_name')||''; }catch(e){}
 
 const gate=document.getElementById('gate'), gatecard=document.getElementById('gatecard');
