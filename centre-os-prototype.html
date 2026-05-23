@@ -488,7 +488,7 @@ function renderSector(){
   const places=s.children.filter(c=>c.kind==='place');
   h+=`<div class="grid">`;
   places.forEach(p=>h+=placeCard(p));
-  h+=`<button class="addcard" onclick='addPlace("${s.id}")'><div style="font-size:26px;line-height:1">＋</div>Add centre</button>`;
+  h+=`<button class="addcard" onclick='addPlace("${s.id}")'><div style="font-size:26px;line-height:1">＋</div>Add centre</button><button class="addcard" style="color:#b14040;border-color:#e3b1b1" onclick='removeCentrePicker("${s.id}")'><div style="font-size:26px;line-height:1">−</div>Remove centre</button>`;
   h+=`</div>`;
   app.innerHTML=h;
 }
@@ -686,6 +686,8 @@ function go(view, path){ VIEW=view; PATH=path||[]; window.scrollTo(0,0); render(
 document.querySelectorAll('#nav button[data-view]').forEach(b=>b.onclick=()=>go(b.dataset.view, []));
 
 function setStage(id, stage){ const n=find(id); n.stage=stage; render(); }
+function removeNode(id){ const removeFrom=(arr)=>{ for(let i=0;i<arr.length;i++){ if(arr[i].id===id){ arr.splice(i,1); return true; } if(arr[i].children && removeFrom(arr[i].children)) return true; } return false; }; removeFrom(STATE.children); render(); }
+function removeCentrePicker(sectorId){ const s=find(sectorId); if(!s||!s.children||s.children.filter(c=>c.kind==='place').length===0){ alert('No centres to remove.'); return; } const places=s.children.filter(c=>c.kind==='place'); const list=places.map((c,i)=>(i+1)+'. '+c.name).join('\n'); const which=prompt('Type the number of the centre to remove:\n\n'+list); if(!which) return; const idx=parseInt(which,10)-1; const target=places[idx]; if(!target){ alert('Invalid selection.'); return; } if(!confirm('Remove "'+target.name+'" and all its sub-items? This cannot be undone.')) return; removeNode(target.id); }
 
 function addSector(){
   modalForm('Add a sector',[{k:'name',label:'Sector name',ph:'e.g. Marathahalli'}],(v)=>{
