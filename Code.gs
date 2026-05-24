@@ -22,7 +22,7 @@ var T_SESS = 'Sessions';
 
 // Bump this whenever you redeploy so the frontend can confirm
 // which version is live. Visit the /exec URL in a browser to see it.
-var BACKEND_VERSION = '2026-05-24-admin-approvals';
+var BACKEND_VERSION = '2026-05-25-signup-email-centre';
 
 /* ---- entry points ------------------------------------------------------ */
 
@@ -81,9 +81,16 @@ function sheet_(name, headers) {
 
 function ensure_() {
   sheet_(T_DATA);
-  var u = sheet_(T_USERS, ['username', 'password', 'name', 'active']);
+  // Users schema: username | password | name | active | email | centre
+  // (email + centre were added later; existing rows just have blank values.)
+  var u = sheet_(T_USERS, ['username', 'password', 'name', 'active', 'email', 'centre']);
   if (u.getLastRow() < 2) {
-    u.appendRow(['admin', 'isha@2026', 'Administrator', 'yes']);
+    u.appendRow(['admin', 'isha@2026', 'Administrator', 'yes', '', '']);
+  } else {
+    // Back-fill new column headers if an older sheet is missing them
+    var headerRow = u.getRange(1, 1, 1, Math.max(u.getLastColumn(), 6)).getValues()[0];
+    if (!headerRow[4]) u.getRange(1, 5).setValue('email');
+    if (!headerRow[5]) u.getRange(1, 6).setValue('centre');
   }
   sheet_(T_SESS, ['token', 'username', 'created']);
 }
@@ -132,20 +139,25 @@ function requireAdmin_(token) {
 
 function signup_(req) {
   ensure_();
-  var user = String(req.username || '').trim();
-  var pass = String(req.password || '');
-  var name = String(req.name || '').trim();
-  if (!user || !pass) return { ok: false, error: 'Username and password required.' };
+  // Email is the primary identifier for new signups; we store it in the
+  // username column too so login_ (which keys off username) keeps working.
+  var email  = String(req.email || req.username || '').trim();
+  var user   = email;
+  var pass   = String(req.password || '');
+  var name   = String(req.name || '').trim();
+  var centre = String(req.centre || '').trim();
+  if (!user || !pass) return { ok: false, error: 'Email and password are required.' };
+  if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false, error: 'Please enter a valid email address.' };
   var sh = sheet_(T_USERS);
   var rows = sh.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
     if (String(rows[i][0]).trim().toLowerCase() === user.toLowerCase()) {
-      return { ok: false, error: 'An account with that username already exists.' };
+      return { ok: false, error: 'An account with that email already exists.' };
     }
   }
-  // Account is created in PENDING state. An admin must change the row's
-  // "active" column to "yes" in the Users tab before this user can log in.
-  sh.appendRow([user, pass, name || user, 'pending']);
+  // Account is created in PENDING state. An admin must approve (set active='yes')
+  // — either via the Admin page in the app or by editing the sheet directly.
+  sh.appendRow([user, pass, name || user, 'pending', email, centre]);
   return { ok: true, pending: true };
 }
 
@@ -177,7 +189,9 @@ function list_users_(req) {
     out.push({
       username: String(rows[i][0] || ''),
       name:     String(rows[i][2] || ''),
-      active:   String(rows[i][3] || '').toLowerCase().trim()
+      active:   String(rows[i][3] || '').toLowerCase().trim(),
+      email:    String(rows[i][4] || ''),
+      centre:   String(rows[i][5] || '')
     });
   }
   return { ok: true, users: out };

@@ -23,7 +23,10 @@
     --radius:14px;
   }
   *{box-sizing:border-box}
+  html,body{max-width:100%;overflow-x:hidden}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+  /* Prevent grid/flex items from blowing past their column width on small screens */
+  .kpi,.card,.panel,.coord-card,.child,.role,.stage-pill{min-width:0}
   a{color:inherit}
   button{font-family:inherit;cursor:pointer}
   .wrap{max-width:1180px;margin:0 auto;padding:0 22px 80px}
@@ -31,11 +34,38 @@
   /* top bar */
   header.top{position:sticky;top:0;z-index:30;background:rgba(245,246,251,.86);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
   .top-inner{max-width:1180px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;gap:16px}
-  .logo{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:-.4px;font-size:26px;line-height:1.1}
-  .logo .mk{width:34px;height:34px}
-  .nav{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+  .logo{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:-.4px;font-size:26px;line-height:1.1;background:none;border:none;padding:0;color:var(--ink);cursor:pointer;font-family:inherit;transition:opacity .12s}
+  .logo:hover{opacity:.78}
+  .logo:focus-visible{outline:2px solid var(--slate);outline-offset:4px;border-radius:4px}
+  .logo .mk{width:34px;height:34px;flex:none}
+  .nav{display:flex;gap:6px;flex-wrap:wrap}
   .nav button{border:1px solid var(--line);background:var(--card);padding:8px 13px;border-radius:999px;font-size:13px;font-weight:600;color:var(--muted)}
   .nav button.active{background:var(--slate);border-color:var(--slate);color:#fff}
+
+  /* Header right-side group (nav + hamburger + sync + profile) */
+  .header-group{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+  /* Hamburger button — hidden on desktop (display:none here), shown on mobile via media query */
+  .hamburger{display:none;border:1px solid var(--line);background:var(--card);width:40px;height:38px;border-radius:10px;cursor:pointer;align-items:center;justify-content:center;padding:0;color:var(--ink);transition:border-color .12s,background .12s}
+  .hamburger svg{width:18px;height:18px;display:block}
+  .hamburger:hover{border-color:var(--slate);background:#f3f5fc}
+
+  /* Profile avatar button */
+  .profile-wrap{position:relative}
+  .profile-btn{border:none;background:none;padding:2px;cursor:pointer;border-radius:50%;line-height:0;transition:transform .12s}
+  .profile-btn:hover{transform:scale(1.05)}
+  .profile-btn .pav{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--slate);color:#fff;font-weight:800;font-size:13px;letter-spacing:.3px;border:2px solid #fff;box-shadow:0 1px 3px rgba(31,36,51,.15)}
+
+  /* Profile dropdown menu (desktop + mobile) */
+  .profile-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:220px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(31,36,51,.15);padding:10px;z-index:50;display:none}
+  .profile-menu.open{display:block}
+  .pm-info{padding:6px 8px 10px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .pm-name{font-weight:700;font-size:14px;color:var(--ink)}
+  .pm-role{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4}
+  .pm-role b{color:var(--ink);font-weight:700}
+  .admin-chip{display:inline-block;background:#eef0fa;color:var(--slate);font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;margin-left:4px;letter-spacing:.4px;text-transform:uppercase;vertical-align:1px}
+  .pm-logout{width:100%;padding:9px 10px;border:1px solid #e3b1b1;color:#b14040;background:#fff;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;transition:background .12s}
+  .pm-logout:hover{background:#fcefef}
 
   /* breadcrumb */
   .crumbs{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin:22px 0 6px}
@@ -238,6 +268,27 @@
   /* profile form sections in modal */
   .profile-section{margin-top:18px}
   .profile-section .ps-head{font-weight:800;font-size:13px;margin-bottom:6px}
+
+  /* read-only profile view (shown when a person is already assigned) */
+  .read-view{margin-top:14px}
+  .rv-head{display:flex;gap:14px;align-items:center;padding:14px;background:#fafbff;border:1px solid var(--line);border-radius:12px}
+  .rv-av{width:48px;height:48px;border-radius:50%;background:var(--slate);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;flex:none}
+  .rv-name{font-weight:700;font-size:16px;color:var(--ink)}
+  .rv-prof{font-size:13px;color:var(--muted);margin-top:2px}
+  .rv-list{margin:14px 0 0;padding:0;display:grid;gap:0}
+  .rv-row{display:grid;grid-template-columns:130px 1fr;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+  .rv-row:last-child{border-bottom:none}
+  .rv-row dt{margin:0;color:var(--muted);font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.3px;padding-top:1px}
+  .rv-row dd{margin:0;color:var(--ink);word-break:break-word;line-height:1.45}
+  .rv-row dd a{color:var(--slate);text-decoration:none}
+  .rv-row dd a:hover{text-decoration:underline}
+  .rv-empty{margin-top:12px;color:var(--muted);font-size:13px;padding:12px;background:#fafbff;border:1px dashed var(--line);border-radius:10px;text-align:center}
+  @media (max-width:480px){
+    .rv-row{grid-template-columns:1fr;gap:2px;padding:8px 0}
+    .rv-row dt{font-size:10.5px}
+    .rv-head{padding:12px;gap:12px}
+    .rv-av{width:42px;height:42px;font-size:16px}
+  }
   .profile-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   @media (max-width:520px){.profile-row{grid-template-columns:1fr}}
   textarea{min-height:60px;resize:vertical;font-family:inherit}
@@ -268,14 +319,41 @@
   /* ---- Tablet (≤ 768px) ---- */
   @media (max-width:768px){
     .wrap{padding:0 14px 80px}
-    .top-inner{padding:12px 14px;flex-wrap:wrap;gap:10px}
+    .top-inner{padding:12px 14px;gap:10px}
     .logo{font-size:22px;gap:10px}
     .logo .mk{width:30px;height:30px}
-    .nav{margin-left:0;width:100%;order:2;gap:6px;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;padding-bottom:2px}
-    .nav::-webkit-scrollbar{display:none}
-    .nav{scrollbar-width:none}
-    .nav button{flex:none;white-space:nowrap}
-    #whoami,#syncDot,#logoutBtn{align-self:center}
+
+    /* Hide nav by default; show as dropdown panel when .open is added */
+    .nav{
+      display:none;
+      position:absolute;
+      top:100%; left:0; right:0;
+      background:#fff;
+      border-top:1px solid var(--line);
+      box-shadow:0 8px 24px rgba(31,36,51,.12);
+      padding:12px 14px;
+      flex-direction:column;
+      gap:6px;
+      align-items:stretch;
+      z-index:25;
+      max-height:calc(100vh - 60px);
+      overflow-y:auto;
+    }
+    .nav.open{display:flex}
+    .nav button{
+      flex:none;
+      text-align:left;
+      width:100%;
+      padding:12px 14px;
+      border-radius:10px;
+      font-size:14px;
+    }
+
+    /* Show hamburger; profile icon stays visible */
+    .hamburger{display:inline-flex}
+    /* Hide save-status text on mobile to free up header width — the save still happens silently */
+    #syncDot{display:none !important}
+
     h1{font-size:22px}
     h2{font-size:17px;margin-top:22px}
     .panel{padding:16px}
@@ -413,19 +491,38 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="logo">
-      <svg class="mk" viewBox="0 0 100 90"><polygon points="50,4 96,86 4,86" fill="#5b6a9e"/><polygon points="50,4 73,45 27,45" fill="#a9d6d6"/></svg>
+    <button class="logo" id="logoHome" type="button" aria-label="Go to home">
+      <svg class="mk" viewBox="0 0 100 90" aria-hidden="true"><polygon points="50,4 96,86 4,86" fill="#c0492d"/></svg>
       Isha Karnataka
-    </div>
-    <nav class="nav" id="nav">
-      <button data-view="home" class="active">Region & Dashboard</button>
-      <button data-view="roles">Roles &amp; Responsibilities</button>
-      <button data-view="people">People</button>
-      <button data-view="admin" id="adminNavBtn" style="display:none">Admin</button>
+    </button>
+    <div class="header-group">
+      <nav class="nav" id="nav">
+        <button data-view="home" class="active">Region & Dashboard</button>
+        <button data-view="roles">Roles &amp; Responsibilities</button>
+        <button data-view="people">People</button>
+        <button data-view="admin" id="adminNavBtn" style="display:none">Admin</button>
+      </nav>
+      <button id="hamburgerBtn" class="hamburger" aria-label="Open menu" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+          <line x1="4" y1="7" x2="20" y2="7"/>
+          <line x1="4" y1="12" x2="20" y2="12"/>
+          <line x1="4" y1="17" x2="20" y2="17"/>
+        </svg>
+      </button>
       <span id="syncDot" style="display:none">●</span>
-      <span id="whoami" style="display:none"></span>
-      <button id="logoutBtn" style="display:none">Log out</button>
-    </nav>
+      <div class="profile-wrap" id="profileWrap" style="display:none">
+        <button id="profileBtn" class="profile-btn" aria-label="Profile menu" aria-haspopup="true" aria-expanded="false">
+          <span class="pav" id="profileAvatar">U</span>
+        </button>
+        <div class="profile-menu" id="profileMenu" role="menu">
+          <div class="pm-info">
+            <div class="pm-name" id="pmName">User</div>
+            <div class="pm-role" id="pmRole"></div>
+          </div>
+          <button class="pm-logout" id="logoutBtn">Log out</button>
+        </div>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -1258,7 +1355,9 @@ function paintAdmin(){
   body.innerHTML = h;
 }
 function userTable(users, isPending){
-  let h = `<table class="admin-table"><thead><tr><th>Username</th><th>Full name</th><th>Status</th><th style="text-align:right">Action</th></tr></thead><tbody>`;
+  let h = `<table class="admin-table"><thead><tr>
+    <th>Email / Username</th><th>Full name</th><th>Centre</th><th>Status</th><th style="text-align:right">Action</th>
+  </tr></thead><tbody>`;
   users.forEach(u=>{
     const isAdminRow = (u.username||'').toLowerCase()==='admin';
     let statusBadge;
@@ -1276,7 +1375,8 @@ function userTable(users, isPending){
     } else {
       actions = `<button class="btn sm danger" onclick='adminReject("${esc(u.username)}")'>Disable</button>`;
     }
-    h += `<tr><td><b>${u.username}</b></td><td>${u.name||''}</td><td>${statusBadge}</td><td style="text-align:right">${actions}</td></tr>`;
+    const centre = u.centre ? u.centre : `<span style="color:var(--muted)">—</span>`;
+    h += `<tr><td><b>${u.username}</b></td><td>${u.name||''}</td><td>${centre}</td><td>${statusBadge}</td><td style="text-align:right">${actions}</td></tr>`;
   });
   h += `</tbody></table>`;
   return h;
@@ -1306,7 +1406,62 @@ function updateAdminCache(username, active){
    ACTIONS
    ========================================================================= */
 function go(view, path){ VIEW=view; PATH=path||[]; window.scrollTo(0,0); render(); }
-document.querySelectorAll('#nav button[data-view]').forEach(b=>b.onclick=()=>go(b.dataset.view, []));
+document.querySelectorAll('#nav button[data-view]').forEach(b=>b.onclick=()=>{
+  go(b.dataset.view, []);
+  // close the mobile nav-dropdown after selecting a destination
+  document.getElementById('nav')?.classList.remove('open');
+});
+
+// Logo click → go home
+document.getElementById('logoHome')?.addEventListener('click', ()=>{
+  go('home', []);
+  document.getElementById('nav')?.classList.remove('open');
+  document.getElementById('profileMenu')?.classList.remove('open');
+});
+
+/* ---- Header menus: hamburger (mobile nav) + profile dropdown ---- */
+(function wireHeaderMenus(){
+  const ham   = document.getElementById('hamburgerBtn');
+  const nav   = document.getElementById('nav');
+  const pBtn  = document.getElementById('profileBtn');
+  const pMenu = document.getElementById('profileMenu');
+
+  if(ham && nav){
+    ham.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      nav.classList.toggle('open');
+      pMenu?.classList.remove('open');
+      pBtn?.setAttribute('aria-expanded','false');
+    });
+  }
+  if(pBtn && pMenu){
+    pBtn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const willOpen = !pMenu.classList.contains('open');
+      pMenu.classList.toggle('open');
+      pBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      nav?.classList.remove('open');
+    });
+  }
+  // Close on outside click
+  document.addEventListener('click', (e)=>{
+    if(nav && !e.target.closest('#nav') && !e.target.closest('#hamburgerBtn')){
+      nav.classList.remove('open');
+    }
+    if(pMenu && !e.target.closest('#profileMenu') && !e.target.closest('#profileBtn')){
+      pMenu.classList.remove('open');
+      pBtn?.setAttribute('aria-expanded','false');
+    }
+  });
+  // Close on Escape
+  document.addEventListener('keydown', (e)=>{
+    if(e.key==='Escape'){
+      nav?.classList.remove('open');
+      pMenu?.classList.remove('open');
+      pBtn?.setAttribute('aria-expanded','false');
+    }
+  });
+})();
 
 function setStage(id, stage){ const n=find(id); n.stage=stage; render(); }
 function removeNode(id){ const removeFrom=(arr)=>{ for(let i=0;i<arr.length;i++){ if(arr[i].id===id){ arr.splice(i,1); return true; } if(arr[i].children && removeFrom(arr[i].children)) return true; } return false; }; removeFrom(STATE.children); render(); }
@@ -1416,6 +1571,46 @@ function richProfileFields(p){
     </div>
   `;
 }
+/* Read-only profile view — shown when a person is already assigned.
+   Click Edit in the modal footer to switch to richProfileFields() instead. */
+function personReadView(p){
+  const initials = (personName(p) || '?').split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase() || '?';
+  const rows = [
+    ['Phone',           personMobile(p)],
+    ['Email',           personEmail(p)],
+    ['Age',             personAge(p)],
+    ['Occupation',      personOccupation(p)],
+    ['Work experience', personWork(p)],
+    ['Education',       personEducation(p)],
+    ['Isha programs',   personPrograms(p)],
+    ['Volunteering',    personVolunteering(p)],
+    ['Social',          personSocial(p)]
+  ].filter(([_,v]) => v && String(v).trim().length);
+
+  let h = `<div class="read-view">
+    <div class="rv-head">
+      <div class="rv-av">${initials}</div>
+      <div>
+        <div class="rv-name">${personName(p)||''}</div>
+        ${personProfession(p) ? `<div class="rv-prof">${personProfession(p)}</div>` : ''}
+      </div>
+    </div>`;
+  if(rows.length){
+    h += `<dl class="rv-list">`;
+    rows.forEach(([k,v])=>{
+      let displayV = v;
+      if(k==='Phone') displayV = `<a href="tel:${String(v).replace(/[^0-9+]/g,'')}">${v}</a>`;
+      if(k==='Email') displayV = `<a href="mailto:${v}">${v}</a>`;
+      h += `<div class="rv-row"><dt>${k}</dt><dd>${displayV}</dd></div>`;
+    });
+    h += `</dl>`;
+  } else {
+    h += `<div class="rv-empty">Only the name has been captured so far. Click <b>Edit</b> below to fill in the full profile.</div>`;
+  }
+  h += `</div>`;
+  return h;
+}
+
 function gatherProfile(){
   return {
     name:        ($('#assignName')?.value||'').trim(),
@@ -1510,12 +1705,17 @@ function openSubRole(subKey, parentRoleKey){
    ROLE / SLOT modals
    ========================================================================= */
 
-/* Centre role detail + assign modal (triangle roles on a place) */
-function openRole(placeId, roleKey){
+/* Centre role detail + assign modal (triangle roles on a place).
+   mode='view'  → read-only profile + Edit button (default when person is assigned)
+   mode='edit'  → editable form + Save/Cancel
+   When no one is assigned, always opens in edit mode (nothing to view). */
+function openRole(placeId, roleKey, mode){
   const n=find(placeId); const r=ROLES[roleKey];
   const active=requiredRoles(n).includes(roleKey);
   const _w=n.assign[roleKey];
   const who=personName(_w);
+  const editing = mode==='edit' || !who;
+
   let body=`
     <div class="row" style="margin-bottom:6px">
       <span class="pri ${r.priority?'p':'n'}">${r.priority?'Priority role':'Next-level role'}</span>
@@ -1528,14 +1728,22 @@ function openRole(placeId, roleKey){
       <div class="kv"><span class="k">Point of contact</span><span>${r.poc}</span></div>
       <div class="kv"><span class="k">Toolkit</span><span><a href="${r.link}" target="_blank">${r.tool} ↗</a></span></div>
     </div>
-    ${richProfileFields(_w)}
+    ${editing ? richProfileFields(_w) : personReadView(_w)}
     ${active?'':'<div class="note">This role isn\'t required at the current stage. Assigning it still works — it\'ll count once you classify the centre higher.</div>'}
   `;
-  showModal(r.name, body, [
-    who?`<button class="btn danger" onclick='clearRole("${placeId}","${roleKey}")'>Remove</button>`:'',
-    `<button class="btn ghost" onclick="closeModal()">Cancel</button>`,
-    `<button class="btn" onclick='saveRole("${placeId}","${roleKey}")'>Save</button>`
-  ].join(''), r.color);
+
+  const footer = editing
+    ? [
+        who ? `<button class="btn danger" onclick='clearRole("${placeId}","${roleKey}")'>Remove</button>` : '',
+        `<button class="btn ghost" onclick='${who?`openRole("${placeId}","${roleKey}")`:`closeModal()`}'>Cancel</button>`,
+        `<button class="btn" onclick='saveRole("${placeId}","${roleKey}")'>Save</button>`
+      ]
+    : [
+        `<button class="btn danger" onclick='clearRole("${placeId}","${roleKey}")'>Remove</button>`,
+        `<button class="btn ghost" onclick="closeModal()">Close</button>`,
+        `<button class="btn" onclick='openRole("${placeId}","${roleKey}","edit")'>Edit</button>`
+      ];
+  showModal(r.name, body, footer.join(''), r.color);
 }
 function saveRole(placeId, roleKey){
   const n=find(placeId); const v=gatherProfile();
@@ -1545,10 +1753,12 @@ function saveRole(placeId, roleKey){
 function clearRole(placeId, roleKey){ delete find(placeId).assign[roleKey]; closeModal(); render(); }
 
 /* Region role detail (with sub-role fractal) */
-function openRegionRole(roleKey){
+function openRegionRole(roleKey, mode){
   if(!STATE.assign) STATE.assign={};
   const r = REGION_ROLES[roleKey]; const _w = STATE.assign[roleKey];
   const who = personName(_w);
+  const editing = mode==='edit' || !who;
+
   const body = `
     <div class="row" style="margin-bottom:6px">
       <span class="pri ${r.priority?'p':'n'}">${r.priority?'Priority':'Next-level'}</span>
@@ -1566,13 +1776,21 @@ function openRegionRole(roleKey){
       <p class="hint">Click a sub-team to see its remit. Each sub-team can further split into smaller teams as the work grows.</p>
       ${subRoleFractal(roleKey, r.color)}
     </div>
-    ${richProfileFields(_w)}
+    ${editing ? richProfileFields(_w) : personReadView(_w)}
   `;
-  showModal(r.name + ' — Region', body, [
-    who?`<button class="btn danger" onclick='clearRegionRole("${roleKey}")'>Remove</button>`:'',
-    `<button class="btn ghost" onclick="closeModal()">Cancel</button>`,
-    `<button class="btn" onclick='saveRegionRole("${roleKey}")'>Save</button>`
-  ].join(''), r.color);
+
+  const footer = editing
+    ? [
+        who ? `<button class="btn danger" onclick='clearRegionRole("${roleKey}")'>Remove</button>` : '',
+        `<button class="btn ghost" onclick='${who?`openRegionRole("${roleKey}")`:`closeModal()`}'>Cancel</button>`,
+        `<button class="btn" onclick='saveRegionRole("${roleKey}")'>Save</button>`
+      ]
+    : [
+        `<button class="btn danger" onclick='clearRegionRole("${roleKey}")'>Remove</button>`,
+        `<button class="btn ghost" onclick="closeModal()">Close</button>`,
+        `<button class="btn" onclick='openRegionRole("${roleKey}","edit")'>Edit</button>`
+      ];
+  showModal(r.name + ' — Region', body, footer.join(''), r.color);
 }
 function saveRegionRole(roleKey){
   if(!STATE.assign) STATE.assign={};
@@ -1583,9 +1801,11 @@ function saveRegionRole(roleKey){
 function clearRegionRole(roleKey){ if(STATE.assign) delete STATE.assign[roleKey]; closeModal(); render(); }
 
 /* Sector slot modal (Coordinator / Support) */
-function openSectorSlot(sectorId, slot){
+function openSectorSlot(sectorId, slot, mode){
   const s=find(sectorId); if(!s.assign) s.assign={};
   const meta = SECTOR_SLOT_META[slot]; const _w = s.assign[slot]; const who = personName(_w);
+  const editing = mode==='edit' || !who;
+
   const body = `
     <div class="row" style="margin-bottom:6px">
       <span class="pri p">Sector role</span>
@@ -1597,13 +1817,21 @@ function openSectorSlot(sectorId, slot){
       <div class="kv"><span class="k">Reports to</span><span>${meta.poc}</span></div>
       <div class="kv"><span class="k">Toolkit</span><span><a href="${meta.link}" target="_blank">${meta.tool} ↗</a></span></div>
     </div>
-    ${richProfileFields(_w)}
+    ${editing ? richProfileFields(_w) : personReadView(_w)}
   `;
-  showModal(`${meta.name} — ${s.name}`, body, [
-    who?`<button class="btn danger" onclick='clearSectorSlot("${sectorId}","${slot}")'>Remove</button>`:'',
-    `<button class="btn ghost" onclick="closeModal()">Cancel</button>`,
-    `<button class="btn" onclick='saveSectorSlot("${sectorId}","${slot}")'>Save</button>`
-  ].join(''), meta.color);
+
+  const footer = editing
+    ? [
+        who ? `<button class="btn danger" onclick='clearSectorSlot("${sectorId}","${slot}")'>Remove</button>` : '',
+        `<button class="btn ghost" onclick='${who?`openSectorSlot("${sectorId}","${slot}")`:`closeModal()`}'>Cancel</button>`,
+        `<button class="btn" onclick='saveSectorSlot("${sectorId}","${slot}")'>Save</button>`
+      ]
+    : [
+        `<button class="btn danger" onclick='clearSectorSlot("${sectorId}","${slot}")'>Remove</button>`,
+        `<button class="btn ghost" onclick="closeModal()">Close</button>`,
+        `<button class="btn" onclick='openSectorSlot("${sectorId}","${slot}","edit")'>Edit</button>`
+      ];
+  showModal(`${meta.name} — ${s.name}`, body, footer.join(''), meta.color);
 }
 function saveSectorSlot(sectorId, slot){
   const s=find(sectorId); if(!s.assign) s.assign={};
@@ -1614,10 +1842,12 @@ function saveSectorSlot(sectorId, slot){
 function clearSectorSlot(sectorId, slot){ const s=find(sectorId); if(s.assign) delete s.assign[slot]; closeModal(); render(); }
 
 /* Centre-extra slot modal (Centre Coordinator) */
-function openCentreSlot(placeId, slot){
+function openCentreSlot(placeId, slot, mode){
   const n=find(placeId); if(!n.assign) n.assign={};
   const meta = CENTRE_EXTRA_META[slot]; const key='centre_'+slot;
   const _w = n.assign[key]; const who = personName(_w);
+  const editing = mode==='edit' || !who;
+
   const body = `
     <div class="row" style="margin-bottom:6px">
       <span class="pri p">Centre role</span>
@@ -1629,13 +1859,21 @@ function openCentreSlot(placeId, slot){
       <div class="kv"><span class="k">Reports to</span><span>${meta.poc}</span></div>
       <div class="kv"><span class="k">Toolkit</span><span><a href="${meta.link}" target="_blank">${meta.tool} ↗</a></span></div>
     </div>
-    ${richProfileFields(_w)}
+    ${editing ? richProfileFields(_w) : personReadView(_w)}
   `;
-  showModal(`${meta.name} — ${n.name}`, body, [
-    who?`<button class="btn danger" onclick='clearCentreSlot("${placeId}","${slot}")'>Remove</button>`:'',
-    `<button class="btn ghost" onclick="closeModal()">Cancel</button>`,
-    `<button class="btn" onclick='saveCentreSlot("${placeId}","${slot}")'>Save</button>`
-  ].join(''), meta.color);
+
+  const footer = editing
+    ? [
+        who ? `<button class="btn danger" onclick='clearCentreSlot("${placeId}","${slot}")'>Remove</button>` : '',
+        `<button class="btn ghost" onclick='${who?`openCentreSlot("${placeId}","${slot}")`:`closeModal()`}'>Cancel</button>`,
+        `<button class="btn" onclick='saveCentreSlot("${placeId}","${slot}")'>Save</button>`
+      ]
+    : [
+        `<button class="btn danger" onclick='clearCentreSlot("${placeId}","${slot}")'>Remove</button>`,
+        `<button class="btn ghost" onclick="closeModal()">Close</button>`,
+        `<button class="btn" onclick='openCentreSlot("${placeId}","${slot}","edit")'>Edit</button>`
+      ];
+  showModal(`${meta.name} — ${n.name}`, body, footer.join(''), meta.color);
 }
 function saveCentreSlot(placeId, slot){
   const n=find(placeId); if(!n.assign) n.assign={};
@@ -1678,7 +1916,7 @@ try{ API_URL=localStorage.getItem('isha_api')||DEFAULT_API_URL; TOKEN=localStora
 const gate=document.getElementById('gate'), gatecard=document.getElementById('gatecard');
 function showGate(html){ gatecard.innerHTML=html; gate.style.display='flex'; }
 function hideGate(){ gate.style.display='none'; }
-const LOGO='<svg viewBox="0 0 100 90" width="34"><polygon points="50,4 96,86 4,86" fill="#5b6a9e"/><polygon points="50,4 73,45 27,45" fill="#a9d6d6"/></svg>';
+const LOGO='<svg viewBox="0 0 100 90" width="34"><polygon points="50,4 96,86 4,86" fill="#c0492d"/></svg>';
 
 async function api(action, payload){
   const body=JSON.stringify(Object.assign({action}, payload||{}));
@@ -1700,13 +1938,31 @@ function save(){
 }
 
 function authUI(authed){
-  const lb=document.getElementById('logoutBtn'), who=document.getElementById('whoami'), sd=document.getElementById('syncDot');
-  const admBtn=document.getElementById('adminNavBtn');
-  lb.style.display = authed?'':'none';
-  who.style.display = authed?'':'none';
-  sd.style.display  = authed?'':'none';
+  const sd      = document.getElementById('syncDot');
+  const admBtn  = document.getElementById('adminNavBtn');
+  const ham     = document.getElementById('hamburgerBtn');
+  const profW   = document.getElementById('profileWrap');
+  const avatar  = document.getElementById('profileAvatar');
+  const pmName  = document.getElementById('pmName');
+  const pmRole  = document.getElementById('pmRole');
+
+  sd.style.display     = authed ? '' : 'none';
+  if(profW) profW.style.display = authed ? '' : 'none';
+  // Hamburger uses CSS media query — '' lets the CSS decide (visible on mobile only).
+  if(ham)   ham.style.display   = authed ? '' : 'none';
   if(admBtn) admBtn.style.display = (authed && IS_ADMIN) ? '' : 'none';
-  if(authed){ who.textContent='Hi, '+(UNAME||'').split(' ')[0]+(IS_ADMIN?' · admin':''); setSync(true); }
+
+  if(authed){
+    const first = (UNAME || '').split(' ')[0] || UNAME || 'You';
+    const initials = (UNAME || 'U').split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase() || 'U';
+    if(avatar) avatar.textContent = initials;
+    if(pmName) pmName.textContent = 'Hi, ' + first;
+    if(pmRole) pmRole.innerHTML  = `Signed in as <b>${UNAME||''}</b>` + (IS_ADMIN ? ' <span class="admin-chip">admin</span>' : '');
+    setSync(true);
+    // Make sure any open menus are closed when auth state changes
+    document.getElementById('nav')?.classList.remove('open');
+    document.getElementById('profileMenu')?.classList.remove('open');
+  }
 }
 
 /* ---- SETUP: paste the deployed /exec URL ---- */
@@ -1774,35 +2030,64 @@ function previewLocal(){
 }
 
 /* nav + boot */
+/* Build a grouped <option> list of all centres (places) under each sector,
+   sourced from the current STATE tree. Used to populate the signup-form dropdown. */
+function buildCentreOptions(){
+  let html = '';
+  allSectors().forEach(sec => {
+    const places = sec.children.filter(c => c.kind === 'place');
+    if(!places.length) return;
+    html += `<optgroup label="${esc(sec.name)}">`;
+    places.forEach(p => { html += `<option value="${esc(p.name)}">${esc(p.name)}</option>`; });
+    html += `</optgroup>`;
+  });
+  return html;
+}
+
 function showSignup(){
   showGate(`<div class="glogo">${LOGO}</div><h2>Isha Karnataka</h2>
     <p class="gsub">Create your account. An admin will approve access before you can log in.</p>
-    <label class="fld"><span>Full name</span><input id="sn"/></label>
-    <label class="fld"><span>Username</span><input id="su" autocomplete="username"/></label>
+    <label class="fld"><span>Full name</span><input id="sn" autocomplete="name"/></label>
+    <label class="fld"><span>Email</span><input id="se" type="email" autocomplete="email" placeholder="you@example.com"/></label>
+    <label class="fld"><span>Your centre</span>
+      <select id="sc">
+        <option value="">— select your centre —</option>
+        ${buildCentreOptions()}
+        <option value="__other">Other / Not listed</option>
+      </select>
+    </label>
     <label class="fld"><span>Password</span><input id="sp" type="password" autocomplete="new-password"/></label>
     <div id="gerr" class="gerr"></div>
     <button class="btn" style="width:100%" onclick="doSignup()">Create account</button>
     <div class="grow"><a onclick="showLogin()">Back to login</a></div>`);
 }
+
 async function doSignup(){
   const n = document.getElementById('sn').value.trim();
-  const u = document.getElementById('su').value.trim();
+  const e = document.getElementById('se').value.trim();
+  const c = document.getElementById('sc').value;
   const p = document.getElementById('sp').value;
   const err = document.getElementById('gerr');
-  if(!u || !p){ err.textContent = 'Username and password required.'; return; }
+  if(!e || !p){ err.textContent = 'Email and password are required.'; return; }
+  if(!/^\S+@\S+\.\S+$/.test(e)){ err.textContent = 'Please enter a valid email address.'; return; }
+  if(!c){ err.textContent = 'Please select your centre.'; return; }
   err.textContent = 'Creating account…';
   try {
-    const r = await api('signup', {username:u, password:p, name:n});
+    // Email is the new identifier. We send it as both `email` (canonical) and
+    // `username` (back-compat with the existing Users sheet schema).
+    const centre = (c === '__other') ? '' : c;
+    const r = await api('signup', {username:e, email:e, password:p, name:n, centre});
+    console.log('[signup] response:', r);
     if(r && r.ok){
-      // Pending-approval flow: do NOT auto-login. Show a confirmation screen.
       showGate(`<div class="glogo">${LOGO}</div>
         <h2>Account requested</h2>
-        <p class="gsub">Thanks${n?', '+n.split(' ')[0]:''}. Your account <b>${u}</b> has been created and is now waiting for an admin to approve access. You'll be able to log in once that's done.</p>
+        <p class="gsub">Thanks${n?', '+n.split(' ')[0]:''}. Your account <b>${e}</b> has been created and is now waiting for an admin to approve access. Once approved, log in with your email and password.</p>
         <button class="btn" style="width:100%" onclick="showLogin()">Back to login</button>`);
     } else {
-      err.textContent = (r && r.error) || 'Signup failed.';
+      err.textContent = (r && r.error) || 'Signup failed. Check the browser console for details.';
     }
-  } catch(e){
+  } catch(err2){
+    console.error('[signup] network error:', err2);
     err.textContent = 'Network error reaching the backend.';
   }
 }
