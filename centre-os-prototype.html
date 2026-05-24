@@ -111,6 +111,7 @@
   .tri polygon:hover{filter:brightness(1.06)}
   .tri text{font-size:10.5px;font-weight:800;fill:#1f2433;pointer-events:none;text-anchor:middle;letter-spacing:.2px}
   .tri text.lite{fill:#aeb4c6}
+  .tri text.reg-lbl{fill:#fff;font-size:10.5px;font-weight:800;letter-spacing:.4px}
   .legend{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:14px;font-size:12px;color:var(--muted)}
   .legend i{width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px}
 
@@ -191,6 +192,59 @@
   #whoami{font-size:12.5px;color:var(--muted);font-weight:700;align-self:center;margin-left:4px}
   #syncDot{font-size:11.5px;font-weight:700;align-self:center;margin-left:2px}
   #logoutBtn{color:#b14040 !important;border-color:#e3b1b1 !important}
+
+  /* region panel on home */
+  .region-panel{background:linear-gradient(140deg,#f8faff,#f0f7f6);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);margin-top:8px}
+  .region-panel .rp-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:24px;align-items:center}
+  @media (max-width:880px){.region-panel .rp-grid{grid-template-columns:1fr}}
+  .region-panel .rp-blurb{font-size:13.5px;color:var(--muted);line-height:1.55}
+  .region-panel .rp-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}
+  .region-panel .rp-stat{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .region-panel .rp-stat .n{font-size:20px;font-weight:800;letter-spacing:-.5px}
+  .region-panel .rp-stat .l{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+
+  /* group headings on sector grid */
+  .group-head{display:flex;align-items:center;gap:10px;margin:22px 0 10px}
+  .group-head h2{margin:0}
+  .group-head .gline{flex:1;height:1px;background:var(--line)}
+  .group-head .gcount{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+
+  /* sub-role fractal */
+  .sub-fractal{margin-top:10px}
+  .sub-fractal svg.mini-tri{display:block;margin:8px auto;max-width:320px;width:100%}
+  .sub-fractal svg.mini-tri polygon{cursor:pointer;transition:opacity .15s,filter .15s}
+  .sub-fractal svg.mini-tri polygon:hover{filter:brightness(1.08)}
+  .sub-fractal svg.mini-tri text{font-size:9.5px;font-weight:800;fill:#fff;pointer-events:none;text-anchor:middle;letter-spacing:.2px}
+  .sub-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+  @media (max-width:520px){.sub-grid{grid-template-columns:1fr}}
+  .sub-chip{border:1px solid var(--line);background:#fff;padding:10px 12px;border-radius:10px;text-align:left;cursor:pointer;font-family:inherit;transition:border-color .12s,background .12s}
+  .sub-chip:hover{border-color:var(--slate);background:#fafbff}
+  .sub-chip .nm{font-weight:700;font-size:13.5px}
+  .sub-chip .desc{font-size:12px;color:var(--muted);margin-top:2px}
+
+  /* coordinator card (sector / centre extra slots) */
+  .coord-card{display:flex;align-items:center;gap:14px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:14px 16px;cursor:pointer;transition:border-color .12s,background .12s}
+  .coord-card:hover{border-color:var(--slate);background:#fafbff}
+  .coord-card .av{width:42px;height:42px;border-radius:50%;background:#eef0fa;color:var(--slate);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:none}
+  .coord-card.assigned .av{background:var(--good);color:#fff}
+  .coord-card .body{flex:1;min-width:0}
+  .coord-card .lbl{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+  .coord-card .nm{font-weight:700;font-size:14.5px;margin-top:2px}
+  .coord-card .meta{font-size:12.5px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .coord-card .arr{color:#c4cadd;font-size:18px;flex:none}
+  .coord-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+  @media (max-width:560px){.coord-row{grid-template-columns:1fr}}
+
+  /* profile form sections in modal */
+  .profile-section{margin-top:18px}
+  .profile-section .ps-head{font-weight:800;font-size:13px;margin-bottom:6px}
+  .profile-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media (max-width:520px){.profile-row{grid-template-columns:1fr}}
+  textarea{min-height:60px;resize:vertical;font-family:inherit}
+
+  /* enhanced person card on People page */
+  .person .extra{font-size:11.5px;color:var(--muted);margin-top:6px;border-top:1px dashed var(--line);padding-top:6px;line-height:1.45}
+  .person .extra b{color:var(--ink);font-weight:700}
 </style>
 </head>
 <body>
@@ -272,6 +326,145 @@ const ROLES = {
 };
 const ROLE_ORDER = ['nurturing','relations','registration','communication','programs','temple','finance','biksha','promotions'];
 
+/* =========================================================================
+   REGION-LEVEL ROLES — same triangle, but Registration + Communication +
+   Finance collapse into one "Admin" vertical. Each role branches into
+   sub-teams (rendered as a fractal mini-triangle in the role modal).
+   ========================================================================= */
+const REGION_ROLES = {
+  nurturing: { name:'Nurturing', color:'#5b6a9e', priority:true,
+    blurb:'Region-wide care backbone — keeps every member connected as the network scales.',
+    resp:['Set nurturing standards across all centres','Mentor centre Nurturing leads','Resolve escalations from centres','Track regional retention metrics'],
+    poc:'Region Coordinator', tool:'ClickUp — Region Nurturing', link:'https://app.clickup.com/',
+    sub:['onboarding','member-care','followup','escalation'] },
+  programs:  { name:'Programs', color:'#5b6a9e', priority:true,
+    blurb:'Region-wide program calendar and quality bar.',
+    resp:['Plan flagship region programs','Coordinate facilitators across sectors','Define program templates','Quality-assure delivery'],
+    poc:'Region Coordinator', tool:'ClickUp — Region Programs', link:'https://app.clickup.com/',
+    sub:['calendar','facilitators','quality','flagship-events'] },
+  promotions:{ name:'Promotions', color:'#5b6a9e', priority:true,
+    blurb:'Brand, reach and growth for the whole region.',
+    resp:['Set regional outreach strategy','Run brand & content','Drive flagship campaigns','Track reach metrics'],
+    poc:'Region Coordinator', tool:'Canva / ClickUp — Region Outreach', link:'https://app.clickup.com/',
+    sub:['social-media','content','campaigns','growth'] },
+  relations: { name:'Relations', color:'#7a93c4', priority:false,
+    blurb:'Government, civic and external relations for the region.',
+    resp:['Liaise with state bodies','Partnerships with NGOs / corporates','CSR pipelines','Reputation management'],
+    poc:'Region Coordinator', tool:'ClickUp — Region Relations', link:'https://app.clickup.com/',
+    sub:['govt','partnerships','csr','community'] },
+  temple:    { name:'Temple', color:'#7a93c4', priority:false,
+    blurb:'Regional temple, ritual and festival oversight.',
+    resp:['Festival calendar across the region','Priest & ritual coordination','Inter-temple support'],
+    poc:'Region Coordinator', tool:'ClickUp — Region Temple', link:'https://app.clickup.com/',
+    sub:['festivals','rituals','priests','sacred-spaces'] },
+  biksha:    { name:'Biksha', color:'#7a93c4', priority:false,
+    blurb:'Region-wide prasadam, meals and seva offerings.',
+    resp:['Plan large-scale biksha events','Coordinate supplies','Volunteer & seva management'],
+    poc:'Region Coordinator', tool:'ClickUp — Region Biksha', link:'https://app.clickup.com/',
+    sub:['meals-planning','supplies','volunteers','seva'] },
+  outreach:  { name:'Outreach', color:'#a9d6d6', priority:false,
+    blurb:'Going into communities — direct, person-to-person engagement that brings new people to the centre.',
+    resp:['Community outreach (RWAs, neighbourhoods)','Engage schools, colleges & corporates','Run referral drives','Convert interest into sign-ups'],
+    poc:'Region Coordinator', tool:'ClickUp — Region Outreach', link:'https://app.clickup.com/',
+    sub:['community-outreach','schools-colleges','referrals','sign-ups'] },
+  isha_business: { name:'Isha Business', color:'#a9d6d6', priority:false,
+    blurb:'Commercial & enterprise wing — Isha products, corporate partnerships, donor pipelines and sponsorships.',
+    resp:['Manage Isha product sales','Build corporate partnerships','Cultivate donor relationships','Drive sponsorships & revenue'],
+    poc:'Region Coordinator', tool:'ClickUp — Isha Business', link:'https://app.clickup.com/',
+    sub:['products','corporate','donors','sponsorships'] },
+  admin:     { name:'Admin', color:'#a9d6d6', priority:false,
+    blurb:'Operations backbone — Registration, Communication and Finance for the whole region, run as one vertical at this level.',
+    resp:['Maintain regional member database','Run region-wide communications','Track finances & donations','Generate cross-centre reports'],
+    poc:'Region Coordinator', tool:'ClickUp — Region Admin', link:'https://app.clickup.com/',
+    sub:['registration','communication','finance','reporting'] }
+};
+/* Which slot in the 9-cell triangle maps to which region role.
+   At region level, each cell is a distinct role (no collapse). */
+const REGION_SLOT_MAP = {
+  nurturing:'nurturing', programs:'programs', promotions:'promotions',
+  relations:'relations', temple:'temple', biksha:'biksha',
+  registration:'outreach',        // upper-left  cell  → Outreach
+  communication:'isha_business',  // upper-right cell  → Isha Business
+  finance:'admin'                 // bottom-centre inverted → Admin
+};
+const REGION_ROLE_ORDER = ['nurturing','programs','promotions','relations','temple','biksha','outreach','isha_business','admin'];
+
+/* Sub-team library — dummy seed; will be replaced once you share the
+   full hierarchy. Each sub-role can later sprout its own sub-teams. */
+const SUB_ROLES = {
+  // nurturing
+  'onboarding':       { name:'Onboarding',       resp:['Welcome new joiners','Set up channels & introductions','First-week handholding'] },
+  'member-care':      { name:'Member Care',      resp:['Wellbeing check-ins','Birthday & milestone touchpoints'] },
+  'followup':         { name:'Follow-up',        resp:['Attendance follow-ups','Re-engage inactive members'] },
+  'escalation':       { name:'Escalation',       resp:['Surface concerns to coordinators','Liaison with regional support'] },
+  // programs
+  'calendar':         { name:'Calendar',         resp:['Master program calendar','Date coordination across sectors'] },
+  'facilitators':     { name:'Facilitators',     resp:['Onboard facilitators','Track availability','Manage roster'] },
+  'quality':          { name:'Quality',          resp:['Set quality standards','Run post-program reviews'] },
+  'flagship-events':  { name:'Flagship Events',  resp:['Plan signature regional events','Lead cross-sector coordination'] },
+  // promotions
+  'social-media':     { name:'Social Media',     resp:['WhatsApp / Instagram / Facebook','Daily content schedule'] },
+  'content':          { name:'Content',          resp:['Creatives & flyers','Story collection','Photography'] },
+  'campaigns':        { name:'Campaigns',        resp:['Time-bound outreach drives','Targeted invites'] },
+  'growth':           { name:'Growth',           resp:['Funnel tracking','Convert outreach → registrations'] },
+  // relations
+  'govt':             { name:'Govt & Civic',     resp:['Liaise with state bodies','Permissions for events'] },
+  'partnerships':     { name:'Partnerships',     resp:['NGO / corporate partnerships','MoUs'] },
+  'csr':              { name:'CSR',              resp:['Pipeline of CSR programs','Donor relations'] },
+  'community':        { name:'Community',        resp:['RWA outreach','Local body engagement'] },
+  // temple
+  'festivals':        { name:'Festivals',        resp:['Festival calendar','Cross-temple planning'] },
+  'rituals':          { name:'Rituals',          resp:['Daily / weekly rituals','Priest scheduling'] },
+  'priests':          { name:'Priests',          resp:['Onboarding & training','Welfare'] },
+  'sacred-spaces':    { name:'Sacred Spaces',    resp:['Maintain temple spaces','Restoration work'] },
+  // biksha
+  'meals-planning':   { name:'Meals Planning',   resp:['Menu planning','Quantities by event'] },
+  'supplies':         { name:'Supplies',         resp:['Vendors','Stock & storage'] },
+  'volunteers':       { name:'Volunteers',       resp:['Roster','Training','Recognition'] },
+  'seva':             { name:'Seva',             resp:['Manage seva contributions','Acknowledge sevadars'] },
+  // outreach
+  'community-outreach':{name:'Community Outreach', resp:['RWA & neighbourhood drives','Local body engagement','Field activations'] },
+  'schools-colleges': { name:'Schools & Colleges',resp:['Engage educational institutions','Student & youth programs'] },
+  'referrals':        { name:'Referrals',         resp:['Member referral drives','Track conversion of referrals'] },
+  'sign-ups':         { name:'Sign-ups',          resp:['Convert interest into registrations','Onboard handoff to Nurturing'] },
+  // isha business
+  'products':         { name:'Products',          resp:['Isha product sales','Inventory & fulfilment'] },
+  'corporate':        { name:'Corporate',         resp:['Corporate partnerships','In-company programs','CSR pipelines'] },
+  'donors':           { name:'Donors',            resp:['Cultivate major donors','Steward relationships','Reporting back to donors'] },
+  'sponsorships':     { name:'Sponsorships',      resp:['Event & program sponsorships','Sponsor activation'] },
+  // admin
+  'registration':     { name:'Registration & DB', resp:['Region-wide registration database','Member directory hygiene'] },
+  'communication':    { name:'Communication',    resp:['Newsletters & announcements','Manage channels'] },
+  'finance':          { name:'Finance',          resp:['Income & expense tracking','Donations & receipts','Monthly reports'] },
+  'reporting':        { name:'Reporting',        resp:['Dashboards','Cross-centre data','Insights for coordinators'] }
+};
+
+/* =========================================================================
+   SECTOR-LEVEL ROLES (alongside the centres in a sector)
+   ========================================================================= */
+const SECTOR_SLOTS = ['coordinator','support'];
+const SECTOR_SLOT_META = {
+  coordinator: { name:'Sector Coordinator', color:'#5b6a9e',
+    blurb:'Owns the sector — sets direction, supports centre coordinators, removes blockers.',
+    resp:['Hold weekly review with centre coordinators','Track sector-wide health and goals','Resolve escalations from centres','Represent the sector at region forums'],
+    poc:'Region Coordinator', tool:'ClickUp — Sector Coordination', link:'https://app.clickup.com/' },
+  support:     { name:'Sector Support', color:'#7a93c4',
+    blurb:'Supports the Sector Coordinator with operations, scheduling and admin.',
+    resp:['Coordinate sector meetings & communications','Track action items & reminders','Help onboard new centre coordinators','Maintain sector-level records'],
+    poc:'Sector Coordinator', tool:'ClickUp — Sector Ops', link:'https://app.clickup.com/' }
+};
+
+/* =========================================================================
+   CENTRE-LEVEL EXTRA SLOTS (outside the triangle) — only at full-centre stage
+   ========================================================================= */
+const CENTRE_EXTRA_SLOTS = ['coordinator'];
+const CENTRE_EXTRA_META = {
+  coordinator: { name:'Centre Coordinator', color:'#5b6a9e',
+    blurb:'Owns the centre — leads role-holders, holds the vision, and reports up to the Sector Coordinator.',
+    resp:['Lead the centre team across all 9 roles','Hold the weekly centre rhythm','Surface issues to sector','Coach role-holders'],
+    poc:'Sector Coordinator', tool:'ClickUp — Centre Coordination', link:'https://app.clickup.com/' }
+};
+
 /* Which roles each stage requires */
 const STAGE_ROLES = {
   micro:  ['nurturing'],
@@ -325,15 +518,7 @@ function sec(name, centres, taluks){
 }
 
 const STATE = node('Karnataka','region','region',{},[
-  sec('Chikkaballapur', ['Chikkaballapura','Doddaballapur','Chintamani','Bangalore Rural','Kolar','Ramanagar']),
-  sec('Mysuru',
-      ['Mysuru','Mandya','Chamarajanagar','Kodagu'],
-      ['Nanjanagud','Tovinakere','Napoklu','Bettadapura','Virajpet']),
-  sec('Mangaluru', ['Mangaluru','Udupi','Dakshina Kannada','Shivamoga']),
-  sec('Tumkur', ['Hassan','Tumkur','Chikmagalur','Tiptur']),
-  sec('North Karnataka', ['Belagavi','Hubballi-Dharwad','Kalaburagi','Vijayapura','Bagalkot',
-      'Ballari','Bidar','Chitradurga','Davanagere','Gadag','Koppal','Raichur',
-      'Uttara Kannada','Vijayanagara','Yadagiri']),
+  /* ---- Bangalore sectors (city core) ---- */
   sec('Hebbal', [
       {n:'Hebbal', assign:{nurturing:'Priya N.',programs:'Mohan D.',promotions:'Asha L.',relations:'Nikhil A.'}},
       'Yelahanka','Bangalore Rural']),
@@ -347,7 +532,20 @@ const STATE = node('Karnataka','region','region',{},[
       'Kanakapura Road','Girinagar']),
   sec('Marathahalli - Whitefield', ['Marathahalli','Whitefield']),
   sec('Vijayanagar - Malleswaram - Ecity', ['Vijayanagar','Malleswaram','Ecity']),
+  /* ---- Outside Bangalore ---- */
+  sec('Chikkaballapur', ['Chikkaballapura','Doddaballapur','Chintamani','Bangalore Rural','Kolar','Ramanagar']),
+  sec('Mysuru',
+      ['Mysuru','Mandya','Chamarajanagar','Kodagu'],
+      ['Nanjanagud','Tovinakere','Napoklu','Bettadapura','Virajpet']),
+  sec('Mangaluru', ['Mangaluru','Udupi','Dakshina Kannada','Shivamoga']),
+  sec('Tumkur', ['Hassan','Tumkur','Chikmagalur','Tiptur']),
+  sec('North Karnataka', ['Belagavi','Hubballi-Dharwad','Kalaburagi','Vijayapura','Bagalkot',
+      'Ballari','Bidar','Chitradurga','Davanagere','Gadag','Koppal','Raichur',
+      'Uttara Kannada','Vijayanagara','Yadagiri']),
 ]);
+
+/* Bangalore sector names — used to group sectors visually on the home page */
+const BANGALORE_SECTORS = new Set(['Hebbal','Indiranagar - Koramangala','Jayanagar - BG Road','Marathahalli - Whitefield','Vijayanagar - Malleswaram - Ecity']);
 
 /* nav state */
 let VIEW = 'home';         // home | sector | place | roles | people
@@ -394,9 +592,38 @@ function personProfession(p){ if(!p||typeof p==='string') return ''; return p.pr
 function personHas(p){ return !!personName(p); }
 function roster(){
   const out=[];
+  // region-level roles
+  if(STATE.assign){
+    Object.entries(STATE.assign).forEach(([roleKey, person])=>{
+      if(personHas(person)){
+        const meta = REGION_ROLES[roleKey];
+        if(meta) out.push({person, roleLabel:meta.name, color:meta.color, priority:meta.priority, scope:'Region', place:'Karnataka'});
+      }
+    });
+  }
+  // sector-level roles
+  allSectors().forEach(s=>{
+    if(!s.assign) return;
+    SECTOR_SLOTS.forEach(slot=>{
+      const person=s.assign[slot];
+      if(personHas(person)){
+        const meta=SECTOR_SLOT_META[slot];
+        out.push({person, roleLabel:meta.name, color:meta.color, priority:true, scope:'Sector', place:s.name});
+      }
+    });
+  });
+  // centre-level: triangle roles + centre-extra coordinator
   allPlaces().forEach(p=>{
-    Object.entries(p.assign).forEach(([role,person])=>{
-      if(personHas(person)) out.push({person:personName(person), mobile:personMobile(person), profession:personProfession(person), role, place:p.name, stage:p.stage});
+    Object.entries(p.assign||{}).forEach(([key,person])=>{
+      if(!personHas(person)) return;
+      if(key.startsWith('centre_')){
+        const slot=key.replace('centre_','');
+        const meta=CENTRE_EXTRA_META[slot]; if(!meta) return;
+        out.push({person, roleLabel:meta.name, color:meta.color, priority:true, scope:STAGE_META[p.stage].label, place:p.name});
+      } else if(ROLES[key]){
+        const meta=ROLES[key];
+        out.push({person, roleLabel:meta.name, color:meta.color, priority:meta.priority, scope:STAGE_META[p.stage].label, place:p.name});
+      }
     });
   });
   return out;
@@ -460,42 +687,153 @@ function renderHome(){
   STAGE_SEQ.forEach(s=>{ h+=`<div class="stage-pill"><div class="n">${m.byStage[s]||0}</div><div class="l">${STAGE_META[s].label}s</div></div>`; });
   h+=`</div>`;
 
-  h+=`<h2>Sectors</h2>`;
-  h+=`<div class="grid">`;
-  allSectors().forEach(s=>{
-    const places=allPlaces(s);
-    let need=0,got=0; places.forEach(p=>{const pr=priorityRequired(p);need+=pr.length;got+=assignedCount(p,pr);});
-    const pct=need?Math.round(got/need*100):0;
-    h+=`<div class="card click" onclick='go("sector",${JSON.stringify(PATH.concat(s.id))})'>
-      <span class="tag sector">Sector</span>
-      <h3>${s.name}</h3>
-      <div class="meta">${places.length} centre${places.length!==1?'s':''} inside</div>
-      <div class="foot"><div class="mini-prog">
-        <div class="lbl"><span>Priority roles</span><span>${got}/${need}</span></div>
-        <div class="bar"><i style="width:${pct}%"></i></div>
-      </div></div>
-    </div>`;
-  });
-  h+=`<button class="addcard" onclick="addSector()"><div style="font-size:26px;line-height:1">＋</div>Add sector</button>`;
-  h+=`</div>`;
+  /* ---- Region triangle (whole Karnataka) ---- */
+  const rm = regionMetrics();
+  h+=`<div class="group-head" style="margin-top:26px"><h2>Region</h2><div class="gline"></div><span class="gcount">Karnataka · ${rm.got}/${rm.need} region roles filled</span></div>`;
+  h+=`<div class="region-panel"><div class="rp-grid">
+    <div class="tri-wrap">${regionTriangleSVG()}
+      <div class="legend">
+        <span><i style="background:var(--slate)"></i>Priority (Nurturing · Programs · Promotions)</span>
+        <span><i style="background:var(--mid)"></i>Mid (Relations · Temple · Biksha)</span>
+        <span><i style="background:var(--teal)"></i>Support (Outreach · Isha Business · Admin)</span>
+      </div>
+    </div>
+    <div>
+      <div style="font-weight:800;font-size:16px">Region leadership — Karnataka</div>
+      <p class="rp-blurb">Same triangle as a centre, but three inner cells — <b>Registration</b>, <b>Communication</b> and <b>Finance</b> — collapse into one <b>Admin</b> vertical at this level. Click any role to read its remit, see the sub-teams branching off it, and assign a person.</p>
+      <div class="rp-stats">
+        <div class="rp-stat"><div class="n">${REGION_ROLE_ORDER.length}</div><div class="l">Region roles</div></div>
+        <div class="rp-stat"><div class="n">${rm.got}<small style="color:var(--muted);font-weight:600"> / ${rm.need}</small></div><div class="l">Filled</div></div>
+        <div class="rp-stat"><div class="n">${m.byStage.sector}</div><div class="l">Sectors</div></div>
+        <div class="rp-stat"><div class="n">${m.places}</div><div class="l">Centres mapped</div></div>
+      </div>
+    </div>
+  </div></div>`;
+
+  /* ---- Sectors, grouped: Bangalore first, then Outside Bangalore ---- */
+  const sectors = allSectors();
+  const bangalore = sectors.filter(s=>BANGALORE_SECTORS.has(s.name));
+  const outside   = sectors.filter(s=>!BANGALORE_SECTORS.has(s.name));
+
+  const renderGroup = (groupName, list, showAdd) => {
+    let g = `<div class="group-head"><h2>${groupName}</h2><div class="gline"></div><span class="gcount">${list.length} sector${list.length!==1?'s':''}</span></div>`;
+    g += `<div class="grid">`;
+    list.forEach(s=>{
+      const places=allPlaces(s);
+      let need=0,got=0; places.forEach(p=>{const pr=priorityRequired(p);need+=pr.length;got+=assignedCount(p,pr);});
+      const pct=need?Math.round(got/need*100):0;
+      const coord = personName(s.assign && s.assign.coordinator);
+      g+=`<div class="card click" onclick='go("sector",${JSON.stringify(PATH.concat(s.id))})'>
+        <span class="tag sector">Sector</span>
+        <h3>${s.name}</h3>
+        <div class="meta">${places.length} centre${places.length!==1?'s':''} inside${coord?` · Coordinator: <b>${coord}</b>`:' · <span style="color:var(--warn)">Coordinator pending</span>'}</div>
+        <div class="foot"><div class="mini-prog">
+          <div class="lbl"><span>Priority roles</span><span>${got}/${need}</span></div>
+          <div class="bar"><i style="width:${pct}%"></i></div>
+        </div></div>
+      </div>`;
+    });
+    if(showAdd) g+=`<button class="addcard" onclick="addSector()"><div style="font-size:26px;line-height:1">＋</div>Add sector</button>`;
+    g+=`</div>`;
+    return g;
+  };
+
+  h+= renderGroup('Bangalore sectors', bangalore, false);
+  h+= renderGroup('Outside Bangalore', outside, true);
 
   h+=`<div class="banner">Ideal next step: replace these sector cards with a clickable <b>Karnataka map</b>. The data model already supports it — each sector is a node, so a map is just another way to render the same drill-in.</div>`;
   app.innerHTML=h;
 }
 
+/* region triangle: 9 distinct roles. Cell colour follows assignment state.
+   Priority roles (corners) use slate; mid roles use mid-blue; teal cells
+   (Outreach / Isha Business / Admin) form the inner support layer. */
+function regionTriangleSVG(){
+  let h='<svg class="tri" viewBox="-6 -6 312 272">';
+  ROLE_ORDER.forEach(slot=>{
+    const roleKey = REGION_SLOT_MAP[slot];
+    const role = REGION_ROLES[roleKey];
+    const who = personName(STATE.assign && STATE.assign[roleKey]);
+    // Show role colour even when unassigned, so the triangle matches the brand image
+    const fill = role.color;
+    const opacity = who ? 1 : 0.78;
+    h+=`<polygon points="${TRI[slot]}" fill="${fill}" opacity="${opacity}" onclick='openRegionRole("${roleKey}")'>
+      <title>${role.name}${who?' — '+who:' — pending'}</title>
+    </polygon>`;
+  });
+  ROLE_ORDER.forEach(slot=>{
+    const roleKey = REGION_SLOT_MAP[slot];
+    const role = REGION_ROLES[roleKey];
+    const [x,y] = TRI_LABEL[slot];
+    h+= regionTriLabel(role.name, x, y);
+  });
+  h+='</svg>';
+  return h;
+}
+/* Label helper: white text, splits on space for 2-word labels longer than 10 chars
+   (e.g. "ISHA BUSINESS" → two lines), so labels fit inside the cell. */
+function regionTriLabel(name, x, y){
+  const upper = name.toUpperCase();
+  const cls = 'reg-lbl';
+  if(upper.length <= 10){
+    return `<text x="${x}" y="${y}" class="${cls}">${upper}</text>`;
+  }
+  const sp = upper.indexOf(' ');
+  if(sp > 0 && sp < upper.length-1){
+    return `<text x="${x}" y="${y-4}" class="${cls}">${upper.slice(0,sp)}</text>` +
+           `<text x="${x}" y="${y+8}" class="${cls}">${upper.slice(sp+1)}</text>`;
+  }
+  return `<text x="${x}" y="${y}" class="${cls}">${upper.slice(0,9)}…</text>`;
+}
+
+function regionMetrics(){
+  const need = REGION_ROLE_ORDER.length;
+  let got = 0;
+  REGION_ROLE_ORDER.forEach(rk=>{ if(personHas(STATE.assign && STATE.assign[rk])) got++; });
+  return {need, got};
+}
+
 /* ---------- SECTOR: list centres ---------- */
 function renderSector(){
   const s=nodeByPath();
+  if(!s.assign) s.assign = {};
   let h=crumbs();
   h+=`<h1>${s.name} <span class="tag sector" style="vertical-align:middle">Sector</span></h1>`;
-  h+=`<p class="sub">A sector is a group of centres. Open a centre to classify it, split it, or assign roles. You can also promote a mature centre into its own sector.</p>`;
+  h+=`<p class="sub">A sector is a group of centres. Assign a Sector Coordinator and Support below, then open any centre to classify it, split it, or assign its roles.</p>`;
 
+  /* Sector-level leadership */
+  h+=`<div class="panel" style="margin-bottom:18px">
+    <h3 style="margin:0 0 4px">Sector leadership</h3>
+    <p class="hint">The Sector Coordinator owns this sector; the Sector Support helps with operations. Click a card to assign or update.</p>
+    <div class="coord-row">`;
+  SECTOR_SLOTS.forEach(slot=>{
+    h+= coordCard(s.assign[slot], SECTOR_SLOT_META[slot], `openSectorSlot("${s.id}","${slot}")`);
+  });
+  h+=`</div></div>`;
+
+  /* Centres in sector */
+  h+=`<h2 style="margin-top:6px">Centres in ${s.name}</h2>`;
   const places=s.children.filter(c=>c.kind==='place');
   h+=`<div class="grid">`;
   places.forEach(p=>h+=placeCard(p));
-  /* Add centre / Remove centre / Areas buttons moved into the centre view below */
   h+=`</div>`;
   app.innerHTML=h;
+}
+
+/* generic coordinator card used at sector & centre level */
+function coordCard(personObj, meta, onclickJs){
+  const who = personName(personObj);
+  const sub = [personProfession(personObj), personMobile(personObj)].filter(Boolean).join(' · ');
+  const initials = (who||'').split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+  return `<div class="coord-card ${who?'assigned':''}" onclick='${onclickJs}'>
+    <div class="av" style="${who?`background:${meta.color};color:#fff`:''}">${who?initials:'+'}</div>
+    <div class="body">
+      <div class="lbl">${meta.name}</div>
+      <div class="nm">${who||'<span style="color:var(--muted);font-weight:600">Not yet assigned</span>'}</div>
+      <div class="meta">${who?(sub||'Click to view & edit profile'):meta.blurb}</div>
+    </div>
+    <div class="arr">›</div>
+  </div>`;
 }
 
 function placeCard(p){
@@ -562,6 +900,18 @@ function renderPlace(){
     h+= childrenBlock(n,'centre');
     h+=`</div>`;
   } else {
+    /* Centre Coordinator slot — only at the full Centre stage (above the triangle roles) */
+    if(n.stage==='centre'){
+      if(!n.assign) n.assign = {};
+      h+=`<div class="panel" style="margin-bottom:18px">
+        <h3 style="margin:0 0 4px">Centre leadership</h3>
+        <p class="hint">A full centre needs a Centre Coordinator who leads the 9 role-holders and reports up to the Sector Coordinator.</p>
+        <div class="coord-row" style="grid-template-columns:1fr">`;
+      CENTRE_EXTRA_SLOTS.forEach(slot=>{
+        h+= coordCard(n.assign['centre_'+slot], CENTRE_EXTRA_META[slot], `openCentreSlot("${n.id}","${slot}")`);
+      });
+      h+=`</div></div>`;
+    }
     h+=`<div class="panel"><h3>2 · Roles for a ${meta.label}</h3>
       <p class="hint">Priority roles count toward the dashboard. Next-level roles plug in as the centre matures — click any role to open its toolkit & assign a person.</p>
       <div class="role-list">`;
@@ -669,16 +1019,26 @@ function renderRoles(){
 function renderPeople(){
   const r=roster();
   let h=`<h1>People on the platform</h1>
-  <p class="sub">Everyone onboarded into a role. Each person gets access to this repository and can see who else is in the network.</p>`;
-  if(r.length===0){ h+=`<div class="empty">No one assigned yet — open a centre and assign roles.</div>`; app.innerHTML=h; return; }
+  <p class="sub">Everyone onboarded into a role across the region, sectors and centres. Each person gets access to this portal and can see who else is in the network.</p>`;
+  if(r.length===0){ h+=`<div class="empty">No one assigned yet — open the region, a sector, or a centre and assign roles.</div>`; app.innerHTML=h; return; }
   h+=`<div class="people">`;
   r.forEach(x=>{
-    const role=ROLES[x.role];
-    const initials=(x.person||'').split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
-    h+=`<div class="person"><div class="av" style="background:${role.color}">${initials}</div>
-      <div class="nm">${x.person}${x.profession?` <span style="color:var(--muted);font-weight:500;font-size:12px">· ${x.profession}</span>`:''}</div>
-      <div class="rl">${role.name} <span class="pri ${role.priority?'p':'n'}" style="margin-left:4px">${role.priority?'Priority':'Next'}</span></div>
-      <div class="loc">${x.place} · ${STAGE_META[x.stage].label}${x.mobile?` · <a href="tel:${x.mobile.replace(/[^0-9+]/g,'')}" style="color:inherit">📞 ${x.mobile}</a>`:''}</div></div>`;
+    const p = x.person;
+    const name = personName(p);
+    const initials = name.split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+    const mob = personMobile(p), email = personEmail(p);
+    const prof = personProfession(p), occ = personOccupation(p);
+    const programs = personPrograms(p), edu = personEducation(p);
+    const extras = [];
+    if(occ) extras.push(`<b>Occupation:</b> ${occ}`);
+    if(edu) extras.push(`<b>Education:</b> ${edu}`);
+    if(programs) extras.push(`<b>Programs:</b> ${programs}`);
+    h+=`<div class="person"><div class="av" style="background:${x.color}">${initials||'·'}</div>
+      <div class="nm">${name}${prof?` <span style="color:var(--muted);font-weight:500;font-size:12px">· ${prof}</span>`:''}</div>
+      <div class="rl">${x.roleLabel} <span class="pri ${x.priority?'p':'n'}" style="margin-left:4px">${x.priority?'Priority':'Next'}</span></div>
+      <div class="loc">${x.place} · ${x.scope}${mob?` · <a href="tel:${mob.replace(/[^0-9+]/g,'')}" style="color:inherit">📞 ${mob}</a>`:''}${email?` · <a href="mailto:${email}" style="color:inherit">✉ ${email}</a>`:''}</div>
+      ${extras.length?`<div class="extra">${extras.join(' · ')}</div>`:''}
+    </div>`;
   });
   h+=`</div>`;
   app.innerHTML=h;
@@ -748,11 +1108,156 @@ function addPlace(parentId){
 }
 
 
-/* role detail + assign modal */
+/* =========================================================================
+   RICH PROFILE form + person field helpers
+   ========================================================================= */
+const OCCUPATION_OPTIONS = ['Employee','Self-employed','Student','Homemaker','Retired','Other'];
+const EDUCATION_OPTIONS  = ['High School','Diploma','Bachelor’s','Master’s','PhD','Other'];
+function personEmail(p){ return (!p||typeof p==='string')?'':(p.email||''); }
+function personAge(p){ return (!p||typeof p==='string')?'':(p.age||''); }
+function personOccupation(p){ return (!p||typeof p==='string')?'':(p.occupation||''); }
+function personWork(p){ return (!p||typeof p==='string')?'':(p.work||''); }
+function personEducation(p){ return (!p||typeof p==='string')?'':(p.education||''); }
+function personPrograms(p){ return (!p||typeof p==='string')?'':(p.programs||''); }
+function personVolunteering(p){ return (!p||typeof p==='string')?'':(p.volunteering||''); }
+function personSocial(p){ return (!p||typeof p==='string')?'':(p.social||''); }
+function esc(v){ return String(v||'').replace(/"/g,'&quot;'); }
+
+function richProfileFields(p){
+  const opts = (list, sel) => list.map(o=>`<option value="${esc(o)}" ${o===sel?'selected':''}>${o}</option>`).join('');
+  return `
+    <div class="profile-section">
+      <div class="ps-head">Assign a person</div>
+      <p class="hint">To start, coordinators only need <b>name + phone</b>. The full profile can be completed later by the person themselves when they sign in.</p>
+      <label class="fld"><span>Full name *</span>
+        <input id="assignName" value="${esc(personName(p))}" placeholder="e.g. Priya N."/></label>
+      <div class="profile-row">
+        <label class="fld"><span>Phone *</span>
+          <input id="assignMobile" type="tel" value="${esc(personMobile(p))}" placeholder="+91 98xxxxxxxx"/></label>
+        <label class="fld"><span>Email</span>
+          <input id="assignEmail" type="email" value="${esc(personEmail(p))}" placeholder="name@example.com"/></label>
+      </div>
+      <div class="profile-row">
+        <label class="fld"><span>Age</span>
+          <input id="assignAge" type="number" min="0" value="${esc(personAge(p))}" placeholder="32"/></label>
+        <label class="fld"><span>Occupation status</span>
+          <select id="assignOccupation"><option value="">— select —</option>${opts(OCCUPATION_OPTIONS, personOccupation(p))}</select></label>
+      </div>
+      <label class="fld"><span>Profession</span>
+        <input id="assignProfession" value="${esc(personProfession(p))}" placeholder="e.g. Software engineer, Teacher"/></label>
+      <label class="fld"><span>Work experience</span>
+        <textarea id="assignWork" rows="2" placeholder="Brief work history">${esc(personWork(p))}</textarea></label>
+      <label class="fld"><span>Educational background</span>
+        <select id="assignEducation"><option value="">— select —</option>${opts(EDUCATION_OPTIONS, personEducation(p))}</select></label>
+      <label class="fld"><span>Isha programs completed</span>
+        <textarea id="assignPrograms" rows="2" placeholder="e.g. Inner Engineering, Bhava Spandana, Samyama">${esc(personPrograms(p))}</textarea></label>
+      <label class="fld"><span>Volunteering experience / journey</span>
+        <textarea id="assignVolunteering" rows="3" placeholder="Briefly describe their seva journey...">${esc(personVolunteering(p))}</textarea></label>
+      <label class="fld"><span>Social profiles</span>
+        <input id="assignSocial" value="${esc(personSocial(p))}" placeholder="LinkedIn, Instagram, etc."/></label>
+    </div>
+  `;
+}
+function gatherProfile(){
+  return {
+    name:        ($('#assignName')?.value||'').trim(),
+    mobile:      ($('#assignMobile')?.value||'').trim(),
+    email:       ($('#assignEmail')?.value||'').trim(),
+    age:         ($('#assignAge')?.value||'').trim(),
+    occupation:  ($('#assignOccupation')?.value||''),
+    profession:  ($('#assignProfession')?.value||'').trim(),
+    work:        ($('#assignWork')?.value||'').trim(),
+    education:   ($('#assignEducation')?.value||''),
+    programs:    ($('#assignPrograms')?.value||'').trim(),
+    volunteering:($('#assignVolunteering')?.value||'').trim(),
+    social:      ($('#assignSocial')?.value||'').trim()
+  };
+}
+
+/* =========================================================================
+   Sub-role fractal — a mini triangle (or grid) shown inside a role modal
+   ========================================================================= */
+function subRoleFractal(roleKey, color){
+  const r = REGION_ROLES[roleKey] || ROLES[roleKey];
+  const subs = (r && r.sub) || [];
+  if(!subs.length) return '';
+  let h = '<div class="sub-fractal">';
+  if(subs.length === 3){
+    // 3 inner triangles forming a fractal
+    h += '<svg viewBox="-6 -6 232 192" class="mini-tri">';
+    const tris = [
+      {pts:'110,0 65,78 155,78',  l:[110,42]},
+      {pts:'20,170 65,92 110,170', l:[65,148]},
+      {pts:'110,170 155,92 200,170', l:[155,148]}
+    ];
+    subs.forEach((s,i)=>{
+      const sub = SUB_ROLES[s] || {name:s};
+      const t = tris[i];
+      h += `<polygon points="${t.pts}" fill="${color}" opacity="0.9" stroke="#fff" stroke-width="2" onclick='openSubRole("${s}","${roleKey}")'>
+              <title>${sub.name}</title></polygon>`;
+      h += `<text x="${t.l[0]}" y="${t.l[1]}">${sub.name}</text>`;
+    });
+    h += '</svg>';
+  } else if(subs.length === 4){
+    // 4-cell fractal: one apex + 3 base cells (like Sierpinski step)
+    h += '<svg viewBox="-6 -6 232 202" class="mini-tri">';
+    const tris = [
+      {pts:'110,0 65,78 155,78',   l:[110,42]},   // apex
+      {pts:'20,170 65,92 110,170', l:[65,148]},   // left base
+      {pts:'110,170 155,92 200,170', l:[155,148]},// right base
+      {pts:'65,78 155,78 110,170', l:[110,116]}   // centre (inverted)
+    ];
+    subs.forEach((s,i)=>{
+      const sub = SUB_ROLES[s] || {name:s};
+      const t = tris[i];
+      const opacity = i===3 ? 0.65 : 0.9;
+      h += `<polygon points="${t.pts}" fill="${color}" opacity="${opacity}" stroke="#fff" stroke-width="2" onclick='openSubRole("${s}","${roleKey}")'>
+              <title>${sub.name}</title></polygon>`;
+      h += `<text x="${t.l[0]}" y="${t.l[1]}">${sub.name}</text>`;
+    });
+    h += '</svg>';
+  } else {
+    // fallback grid
+    h += '<div class="sub-grid">';
+    subs.forEach(s=>{
+      const sub = SUB_ROLES[s] || {name:s, resp:[]};
+      h += `<button class="sub-chip" onclick='openSubRole("${s}","${roleKey}")'>
+              <div class="nm" style="color:${color}">${sub.name}</div>
+              <div class="desc">${(sub.resp&&sub.resp[0])||'Sub-team'}</div></button>`;
+    });
+    h += '</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+function openSubRole(subKey, parentRoleKey){
+  const sub = SUB_ROLES[subKey] || {name:subKey, resp:[]};
+  const parent = REGION_ROLES[parentRoleKey] || ROLES[parentRoleKey];
+  const body = `
+    <div class="row" style="margin-bottom:6px">
+      <span class="pri n">Sub-team of ${parent.name}</span>
+    </div>
+    <p style="margin:4px 0 14px;color:var(--muted);font-size:14px">A focused team within <b>${parent.name}</b>. As the network grows, sub-teams can split further into smaller teams.</p>
+    <div style="font-weight:800;font-size:13px;margin-bottom:6px">Responsibilities</div>
+    <div class="resp">${(sub.resp||[]).map(x=>`<div class="it"><b>›</b><span>${x}</span></div>`).join('')}</div>
+    <div class="note">Sub-team leads & their teams will be added once the full role hierarchy is finalised. This is a placeholder so you can see the fractal flow.</div>
+  `;
+  showModal(sub.name, body,
+    `<button class="btn ghost" onclick='openRegionRole("${parentRoleKey}")'>← Back to ${parent.name}</button><button class="btn" onclick="closeModal()">Close</button>`,
+    parent.color);
+}
+
+/* =========================================================================
+   ROLE / SLOT modals
+   ========================================================================= */
+
+/* Centre role detail + assign modal (triangle roles on a place) */
 function openRole(placeId, roleKey){
   const n=find(placeId); const r=ROLES[roleKey];
   const active=requiredRoles(n).includes(roleKey);
-  const _w=n.assign[roleKey]; const who=personName(_w); const whoMobile=personMobile(_w); const whoProf=personProfession(_w);
+  const _w=n.assign[roleKey];
+  const who=personName(_w);
   let body=`
     <div class="row" style="margin-bottom:6px">
       <span class="pri ${r.priority?'p':'n'}">${r.priority?'Priority role':'Next-level role'}</span>
@@ -765,12 +1270,7 @@ function openRole(placeId, roleKey){
       <div class="kv"><span class="k">Point of contact</span><span>${r.poc}</span></div>
       <div class="kv"><span class="k">Toolkit</span><span><a href="${r.link}" target="_blank">${r.tool} ↗</a></span></div>
     </div>
-    <label class="fld" style="margin-top:16px"><span>Assign a person — full name</span>
-      <input id="assignName" value="${who.replace(/"/g,'&quot;')}" placeholder="e.g. Priya N."/></label>
-    <label class="fld" style="margin-top:10px"><span>Mobile number</span>
-      <input id="assignMobile" type="tel" inputmode="numeric" pattern="[0-9 +()-]{7,15}" value="${whoMobile.replace(/"/g,'&quot;')}" placeholder="e.g. +91 98xxxxxxxx"/></label>
-    <label class="fld" style="margin-top:10px"><span>Profession</span>
-      <input id="assignProfession" value="${whoProf.replace(/"/g,'&quot;')}" placeholder="e.g. Software engineer, Teacher, Doctor"/></label>
+    ${richProfileFields(_w)}
     ${active?'':'<div class="note">This role isn\'t required at the current stage. Assigning it still works — it\'ll count once you classify the centre higher.</div>'}
   `;
   showModal(r.name, body, [
@@ -779,9 +1279,113 @@ function openRole(placeId, roleKey){
     `<button class="btn" onclick='saveRole("${placeId}","${roleKey}")'>Save</button>`
   ].join(''), r.color);
 }
-function saveRole(placeId, roleKey){ const name=$('#assignName').value.trim(); const mobile=($('#assignMobile')?.value||'').trim(); const profession=($('#assignProfession')?.value||'').trim(); const n=find(placeId);
-  if(name){ n.assign[roleKey]={name, mobile, profession}; } else { delete n.assign[roleKey]; } closeModal(); render(); }
+function saveRole(placeId, roleKey){
+  const n=find(placeId); const v=gatherProfile();
+  if(v.name){ n.assign[roleKey]=v; } else { delete n.assign[roleKey]; }
+  closeModal(); render();
+}
 function clearRole(placeId, roleKey){ delete find(placeId).assign[roleKey]; closeModal(); render(); }
+
+/* Region role detail (with sub-role fractal) */
+function openRegionRole(roleKey){
+  if(!STATE.assign) STATE.assign={};
+  const r = REGION_ROLES[roleKey]; const _w = STATE.assign[roleKey];
+  const who = personName(_w);
+  const body = `
+    <div class="row" style="margin-bottom:6px">
+      <span class="pri ${r.priority?'p':'n'}">${r.priority?'Priority':'Next-level'}</span>
+      <span class="pri n" style="background:#eaf1ff;color:#3a4f93">Region role</span>
+    </div>
+    <p style="margin:4px 0 14px;color:var(--muted);font-size:14px">${r.blurb}</p>
+    <div style="font-weight:800;font-size:13px;margin-bottom:6px">Responsibilities</div>
+    <div class="resp">${r.resp.map(x=>`<div class="it"><b>›</b><span>${x}</span></div>`).join('')}</div>
+    <div class="toolkit">
+      <div class="kv"><span class="k">Point of contact</span><span>${r.poc}</span></div>
+      <div class="kv"><span class="k">Toolkit</span><span><a href="${r.link}" target="_blank">${r.tool} ↗</a></span></div>
+    </div>
+    <div class="profile-section">
+      <div class="ps-head">Sub-teams · fractal branches</div>
+      <p class="hint">Click a sub-team to see its remit. Each sub-team can further split into smaller teams as the work grows.</p>
+      ${subRoleFractal(roleKey, r.color)}
+    </div>
+    ${richProfileFields(_w)}
+  `;
+  showModal(r.name + ' — Region', body, [
+    who?`<button class="btn danger" onclick='clearRegionRole("${roleKey}")'>Remove</button>`:'',
+    `<button class="btn ghost" onclick="closeModal()">Cancel</button>`,
+    `<button class="btn" onclick='saveRegionRole("${roleKey}")'>Save</button>`
+  ].join(''), r.color);
+}
+function saveRegionRole(roleKey){
+  if(!STATE.assign) STATE.assign={};
+  const v=gatherProfile();
+  if(v.name){ STATE.assign[roleKey]=v; } else { delete STATE.assign[roleKey]; }
+  closeModal(); render();
+}
+function clearRegionRole(roleKey){ if(STATE.assign) delete STATE.assign[roleKey]; closeModal(); render(); }
+
+/* Sector slot modal (Coordinator / Support) */
+function openSectorSlot(sectorId, slot){
+  const s=find(sectorId); if(!s.assign) s.assign={};
+  const meta = SECTOR_SLOT_META[slot]; const _w = s.assign[slot]; const who = personName(_w);
+  const body = `
+    <div class="row" style="margin-bottom:6px">
+      <span class="pri p">Sector role</span>
+    </div>
+    <p style="margin:4px 0 14px;color:var(--muted);font-size:14px">${meta.blurb}</p>
+    <div style="font-weight:800;font-size:13px;margin-bottom:6px">Responsibilities</div>
+    <div class="resp">${meta.resp.map(x=>`<div class="it"><b>›</b><span>${x}</span></div>`).join('')}</div>
+    <div class="toolkit">
+      <div class="kv"><span class="k">Reports to</span><span>${meta.poc}</span></div>
+      <div class="kv"><span class="k">Toolkit</span><span><a href="${meta.link}" target="_blank">${meta.tool} ↗</a></span></div>
+    </div>
+    ${richProfileFields(_w)}
+  `;
+  showModal(`${meta.name} — ${s.name}`, body, [
+    who?`<button class="btn danger" onclick='clearSectorSlot("${sectorId}","${slot}")'>Remove</button>`:'',
+    `<button class="btn ghost" onclick="closeModal()">Cancel</button>`,
+    `<button class="btn" onclick='saveSectorSlot("${sectorId}","${slot}")'>Save</button>`
+  ].join(''), meta.color);
+}
+function saveSectorSlot(sectorId, slot){
+  const s=find(sectorId); if(!s.assign) s.assign={};
+  const v=gatherProfile();
+  if(v.name){ s.assign[slot]=v; } else { delete s.assign[slot]; }
+  closeModal(); render();
+}
+function clearSectorSlot(sectorId, slot){ const s=find(sectorId); if(s.assign) delete s.assign[slot]; closeModal(); render(); }
+
+/* Centre-extra slot modal (Centre Coordinator) */
+function openCentreSlot(placeId, slot){
+  const n=find(placeId); if(!n.assign) n.assign={};
+  const meta = CENTRE_EXTRA_META[slot]; const key='centre_'+slot;
+  const _w = n.assign[key]; const who = personName(_w);
+  const body = `
+    <div class="row" style="margin-bottom:6px">
+      <span class="pri p">Centre role</span>
+    </div>
+    <p style="margin:4px 0 14px;color:var(--muted);font-size:14px">${meta.blurb}</p>
+    <div style="font-weight:800;font-size:13px;margin-bottom:6px">Responsibilities</div>
+    <div class="resp">${meta.resp.map(x=>`<div class="it"><b>›</b><span>${x}</span></div>`).join('')}</div>
+    <div class="toolkit">
+      <div class="kv"><span class="k">Reports to</span><span>${meta.poc}</span></div>
+      <div class="kv"><span class="k">Toolkit</span><span><a href="${meta.link}" target="_blank">${meta.tool} ↗</a></span></div>
+    </div>
+    ${richProfileFields(_w)}
+  `;
+  showModal(`${meta.name} — ${n.name}`, body, [
+    who?`<button class="btn danger" onclick='clearCentreSlot("${placeId}","${slot}")'>Remove</button>`:'',
+    `<button class="btn ghost" onclick="closeModal()">Cancel</button>`,
+    `<button class="btn" onclick='saveCentreSlot("${placeId}","${slot}")'>Save</button>`
+  ].join(''), meta.color);
+}
+function saveCentreSlot(placeId, slot){
+  const n=find(placeId); if(!n.assign) n.assign={};
+  const v=gatherProfile(); const key='centre_'+slot;
+  if(v.name){ n.assign[key]=v; } else { delete n.assign[key]; }
+  closeModal(); render();
+}
+function clearCentreSlot(placeId, slot){ const n=find(placeId); if(n.assign) delete n.assign['centre_'+slot]; closeModal(); render(); }
 
 /* =========================================================================
    MODAL plumbing
