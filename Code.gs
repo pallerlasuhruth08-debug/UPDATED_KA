@@ -20,6 +20,10 @@ var T_DATA = 'Data';
 var T_USERS = 'Users';
 var T_SESS = 'Sessions';
 
+// Bump this whenever you redeploy so the frontend can confirm
+// which version is live. Visit the /exec URL in a browser to see it.
+var BACKEND_VERSION = '2026-05-24-admin-approvals';
+
 /* ---- entry points ------------------------------------------------------ */
 
 function doPost(e) {
@@ -27,12 +31,17 @@ function doPost(e) {
   try {
     var req = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     switch (req.action) {
-      case 'ping':   out = { ok: true, ts: Date.now() }; break;
-      case 'login':  out = login_(req); break;      case 'signup': out = signup_(req); break;
-      case 'logout': out = logout_(req); break;
-      case 'load':   out = load_(req); break;
-      case 'save':   out = save_(req); break;
-      default:       out = { ok: false, error: 'Unknown action: ' + req.action };
+      case 'ping':         out = { ok: true, ts: Date.now(), version: BACKEND_VERSION }; break;
+      case 'login':        out = login_(req); break;
+      case 'signup':       out = signup_(req); break;
+      case 'logout':       out = logout_(req); break;
+      case 'load':         out = load_(req); break;
+      case 'save':         out = save_(req); break;
+      // admin-only endpoints
+      case 'list_users':   out = list_users_(req); break;
+      case 'approve_user': out = approve_user_(req); break;
+      case 'reject_user':  out = reject_user_(req); break;
+      default:             out = { ok: false, error: 'Unknown action: ' + req.action };
     }
   } catch (err) {
     out = { ok: false, error: String(err) };
@@ -41,8 +50,13 @@ function doPost(e) {
 }
 
 function doGet() {
-  // a friendly health check if someone opens the URL in a browser
-  return json_({ ok: true, msg: 'Isha Karnataka backend is live.' });
+  // Friendly health check + version, so you can verify the deployment is current.
+  return json_({
+    ok: true,
+    msg: 'Isha Karnataka backend is live.',
+    version: BACKEND_VERSION,
+    actions: ['ping','login','signup','logout','load','save','list_users','approve_user','reject_user']
+  });
 }
 
 /* ---- helpers ----------------------------------------------------------- */
@@ -82,16 +96,38 @@ function login_(req) {
   var user = String(req.username || '').trim();
   var pass = String(req.password || '');
   for (var i = 1; i < rows.length; i++) {
-    var active = String(rows[i][3]).toLowerCase();
-    if (String(rows[i][0]).trim() === user &&
-        String(rows[i][1]) === pass &&
-        active !== 'no' && active !== 'false') {
+    if (String(rows[i][0]).trim() === user && String(rows[i][1]) === pass) {
+      var active = String(rows[i][3]).toLowerCase().trim();
+      if (active === 'pending') {
+        return { ok: false, code: 'pending',
+          error: 'Your account is pending admin approval. You will be able to log in once an admin has approved your access.' };
+      }
+      if (active === 'no' || active === 'false' || active === 'disabled') {
+        return { ok: false, code: 'disabled',
+          error: 'Your account has been disabled. Please contact an admin.' };
+      }
+      if (active !== 'yes' && active !== 'true' && active !== '') {
+        return { ok: false, code: 'pending',
+          error: 'Your account is pending admin approval.' };
+      }
       var token = Utilities.getUuid();
       sheet_(T_SESS).appendRow([token, rows[i][0], Date.now()]);
-      return { ok: true, token: token, name: rows[i][2] || rows[i][0] };
+      return { ok: true, token: token, name: rows[i][2] || rows[i][0],
+               username: rows[i][0], admin: isAdminUsername_(rows[i][0]) };
     }
   }
   return { ok: false, error: 'Invalid username or password.' };
+}
+
+function isAdminUsername_(u) {
+  return String(u || '').trim().toLowerCase() === 'admin';
+}
+
+function requireAdmin_(token) {
+  var u = userForToken_(token);
+  if (!u) return { ok: false, error: 'Not authenticated.' };
+  if (!isAdminUsername_(u)) return { ok: false, error: 'Admin access required.' };
+  return null; // ok
 }
 
 function signup_(req) {
@@ -104,13 +140,13 @@ function signup_(req) {
   var rows = sh.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
     if (String(rows[i][0]).trim().toLowerCase() === user.toLowerCase()) {
-      return { ok: false, error: 'Username already exists.' };
+      return { ok: false, error: 'An account with that username already exists.' };
     }
   }
-  sh.appendRow([user, pass, name || user, 'yes']);
-  var token = Utilities.getUuid();
-  sheet_(T_SESS).appendRow([token, user, Date.now()]);
-  return { ok: true, token: token, name: name || user };
+  // Account is created in PENDING state. An admin must change the row's
+  // "active" column to "yes" in the Users tab before this user can log in.
+  sh.appendRow([user, pass, name || user, 'pending']);
+  return { ok: true, pending: true };
 }
 
 function userForToken_(token) {
@@ -129,6 +165,49 @@ function logout_(req) {
     if (String(rows[i][0]) === String(req.token)) s.deleteRow(i + 1);
   }
   return { ok: true };
+}
+
+/* ---- admin: list / approve / reject users ------------------------------ */
+
+function list_users_(req) {
+  var gate = requireAdmin_(req.token); if (gate) return gate;
+  var rows = sheet_(T_USERS).getDataRange().getValues();
+  var out = [];
+  for (var i = 1; i < rows.length; i++) {
+    out.push({
+      username: String(rows[i][0] || ''),
+      name:     String(rows[i][2] || ''),
+      active:   String(rows[i][3] || '').toLowerCase().trim()
+    });
+  }
+  return { ok: true, users: out };
+}
+
+function approve_user_(req) {
+  var gate = requireAdmin_(req.token); if (gate) return gate;
+  return setUserActive_(req.username, 'yes');
+}
+
+function reject_user_(req) {
+  var gate = requireAdmin_(req.token); if (gate) return gate;
+  // "Reject" disables the account rather than deleting it, so a username
+  // can't immediately be re-registered by someone else (audit trail).
+  return setUserActive_(req.username, 'no');
+}
+
+function setUserActive_(username, value) {
+  var sh = sheet_(T_USERS);
+  var rows = sh.getDataRange().getValues();
+  var target = String(username || '').trim().toLowerCase();
+  if (!target) return { ok: false, error: 'Username required.' };
+  if (target === 'admin') return { ok: false, error: 'Cannot modify the admin account.' };
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).trim().toLowerCase() === target) {
+      sh.getRange(i + 1, 4).setValue(value); // active is column 4 (1-indexed)
+      return { ok: true, username: rows[i][0], active: value };
+    }
+  }
+  return { ok: false, error: 'User not found.' };
 }
 
 /* ---- data load / save -------------------------------------------------- */

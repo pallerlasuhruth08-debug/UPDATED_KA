@@ -185,7 +185,7 @@
   .gatecard h2{font-size:22px;letter-spacing:-.4px;margin:6px 0 2px}
   .gsub{color:var(--muted);font-size:13.5px;margin:0 0 18px}
   .gatecard .fld{text-align:left}
-  .gerr{color:#b14040;font-size:12.5px;min-height:18px;margin:2px 0 8px;text-align:left}
+  .gerr{color:#b14040;font-size:12.5px;min-height:18px;margin:2px 0 8px;text-align:left;line-height:1.5}
   .grow{margin-top:14px;font-size:12.5px}
   .grow a{color:var(--slate);font-weight:700;cursor:pointer}
   .grow a:hover{text-decoration:underline}
@@ -245,6 +245,16 @@
   /* enhanced person card on People page */
   .person .extra{font-size:11.5px;color:var(--muted);margin-top:6px;border-top:1px dashed var(--line);padding-top:6px;line-height:1.45}
   .person .extra b{color:var(--ink);font-weight:700}
+
+  /* admin user table */
+  table.admin-table{width:100%;border-collapse:collapse;font-size:13.5px}
+  table.admin-table th{text-align:left;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:12px 14px;border-bottom:1px solid var(--line);background:#fafbff}
+  table.admin-table td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+  table.admin-table tr:last-child td{border-bottom:none}
+  .badge{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.4px;padding:3px 8px;border-radius:6px;text-transform:uppercase}
+  .badge.bp{background:#fdeede;color:#c07b16}
+  .badge.ba{background:#e3f4f1;color:#2f9e6f}
+  .badge.bd{background:#fbeaea;color:#b14040}
 </style>
 </head>
 <body>
@@ -258,6 +268,7 @@
       <button data-view="home" class="active">Region & Dashboard</button>
       <button data-view="roles">Roles &amp; Responsibilities</button>
       <button data-view="people">People</button>
+      <button data-view="admin" id="adminNavBtn" style="display:none">Admin</button>
       <span id="syncDot" style="display:none">●</span>
       <span id="whoami" style="display:none"></span>
       <button id="logoutBtn" style="display:none">Log out</button>
@@ -644,6 +655,7 @@ function render(){
   if(VIEW==='home')   return renderHome();
   if(VIEW==='roles')  return renderRoles();
   if(VIEW==='people') return renderPeople();
+  if(VIEW==='admin')  return renderAdmin();
   if(VIEW==='sector') return renderSector();
   if(VIEW==='place')  return renderPlace();
 }
@@ -1044,6 +1056,99 @@ function renderPeople(){
   app.innerHTML=h;
 }
 
+/* ---------- ADMIN page (admin only): approve / reject sign-ups ---------- */
+let ADMIN_USERS = null; // cached user list from backend
+async function renderAdmin(){
+  if(!IS_ADMIN){
+    app.innerHTML = `<h1>Admin</h1><div class="empty">You do not have admin access.</div>`;
+    return;
+  }
+  app.innerHTML = `<h1>Admin · User access</h1>
+    <p class="sub">Approve new sign-ups and manage existing accounts. Pending users can't log in until you approve them.</p>
+    <div id="adminBody"><div class="empty">Loading users…</div></div>`;
+  try{
+    const r = await api('list_users', {token:TOKEN});
+    if(!r || !r.ok){
+      document.getElementById('adminBody').innerHTML =
+        `<div class="empty" style="color:#b14040">Couldn't load users: ${r&&r.error?r.error:'unknown error'}</div>`;
+      return;
+    }
+    ADMIN_USERS = r.users || [];
+    paintAdmin();
+  } catch(e){
+    document.getElementById('adminBody').innerHTML =
+      `<div class="empty" style="color:#b14040">Network error reaching the backend.</div>`;
+  }
+}
+function paintAdmin(){
+  const body = document.getElementById('adminBody'); if(!body) return;
+  const users = ADMIN_USERS || [];
+  const pending  = users.filter(u=>u.active==='pending');
+  const approved = users.filter(u=>u.active==='yes' || u.active==='true' || u.active==='');
+  const disabled = users.filter(u=>u.active==='no' || u.active==='false' || u.active==='disabled');
+  let h = '';
+  // Pending
+  h += `<div class="group-head" style="margin-top:6px"><h2>Pending approval</h2><div class="gline"></div><span class="gcount">${pending.length}</span></div>`;
+  if(pending.length===0){
+    h += `<div class="empty">No accounts waiting — you're all caught up.</div>`;
+  } else {
+    h += `<div class="panel" style="padding:0">${userTable(pending, true)}</div>`;
+  }
+  // Approved
+  h += `<div class="group-head"><h2>Approved</h2><div class="gline"></div><span class="gcount">${approved.length}</span></div>`;
+  h += approved.length ? `<div class="panel" style="padding:0">${userTable(approved, false)}</div>` : `<div class="empty">No approved accounts yet.</div>`;
+  // Disabled
+  if(disabled.length){
+    h += `<div class="group-head"><h2>Disabled</h2><div class="gline"></div><span class="gcount">${disabled.length}</span></div>`;
+    h += `<div class="panel" style="padding:0">${userTable(disabled, false)}</div>`;
+  }
+  body.innerHTML = h;
+}
+function userTable(users, isPending){
+  let h = `<table class="admin-table"><thead><tr><th>Username</th><th>Full name</th><th>Status</th><th style="text-align:right">Action</th></tr></thead><tbody>`;
+  users.forEach(u=>{
+    const isAdminRow = (u.username||'').toLowerCase()==='admin';
+    let statusBadge;
+    if(u.active==='pending') statusBadge = `<span class="badge bp">Pending</span>`;
+    else if(u.active==='no' || u.active==='false' || u.active==='disabled') statusBadge = `<span class="badge bd">Disabled</span>`;
+    else statusBadge = `<span class="badge ba">Active</span>`;
+    let actions = '';
+    if(isAdminRow){
+      actions = `<span class="meta" style="color:var(--muted);font-size:12px">protected</span>`;
+    } else if(u.active==='pending'){
+      actions = `<button class="btn sm" onclick='adminApprove("${esc(u.username)}")'>Approve</button>
+                 <button class="btn sm danger" style="margin-left:6px" onclick='adminReject("${esc(u.username)}")'>Reject</button>`;
+    } else if(u.active==='no' || u.active==='false' || u.active==='disabled'){
+      actions = `<button class="btn sm" onclick='adminApprove("${esc(u.username)}")'>Re-enable</button>`;
+    } else {
+      actions = `<button class="btn sm danger" onclick='adminReject("${esc(u.username)}")'>Disable</button>`;
+    }
+    h += `<tr><td><b>${u.username}</b></td><td>${u.name||''}</td><td>${statusBadge}</td><td style="text-align:right">${actions}</td></tr>`;
+  });
+  h += `</tbody></table>`;
+  return h;
+}
+async function adminApprove(username){
+  try{
+    const r = await api('approve_user', {token:TOKEN, username});
+    if(r&&r.ok){ updateAdminCache(username, 'yes'); paintAdmin(); }
+    else alert((r&&r.error)||'Failed to approve.');
+  } catch(e){ alert('Network error.'); }
+}
+async function adminReject(username){
+  if(!confirm(`Reject / disable "${username}"? They will not be able to log in.`)) return;
+  try{
+    const r = await api('reject_user', {token:TOKEN, username});
+    if(r&&r.ok){ updateAdminCache(username, 'no'); paintAdmin(); }
+    else alert((r&&r.error)||'Failed to reject.');
+  } catch(e){ alert('Network error.'); }
+}
+function updateAdminCache(username, active){
+  if(!ADMIN_USERS) return;
+  const target = (username||'').toLowerCase();
+  ADMIN_USERS.forEach(u=>{ if((u.username||'').toLowerCase()===target) u.active = active; });
+}
+
 /* =========================================================================
    ACTIONS
    ========================================================================= */
@@ -1413,8 +1518,9 @@ function modalForm(title, fields, onSave){
 /* =========================================================================
    BACKEND (Google Apps Script web app) + PER-USER AUTH
    ========================================================================= */
-const DEFAULT_API_URL='https://script.google.com/macros/s/AKfycbzQs98Hsez1dLis5pEHZtAFjLbRk6l6Ccg6EtzulymXJHJlg-IeDsDVcRUtQU3tSPuo/exec'; let API_URL=DEFAULT_API_URL, TOKEN='', UNAME='';
-try{ API_URL=localStorage.getItem('isha_api')||DEFAULT_API_URL; TOKEN=localStorage.getItem('isha_token')||''; UNAME=localStorage.getItem('isha_name')||''; }catch(e){}
+const DEFAULT_API_URL='https://script.google.com/macros/s/AKfycbyMXFEs9PSB2M4whA73dEqChsf_4hJNoOIk8FXrCRjZdLSZOxkwfRr32C0jJ86RAE4S/exec'; let API_URL=DEFAULT_API_URL, TOKEN='', UNAME='', IS_ADMIN=false;
+
+try{ API_URL=localStorage.getItem('isha_api')||DEFAULT_API_URL; TOKEN=localStorage.getItem('isha_token')||''; UNAME=localStorage.getItem('isha_name')||''; IS_ADMIN=localStorage.getItem('isha_admin')==='1'; }catch(e){}
 
 const gate=document.getElementById('gate'), gatecard=document.getElementById('gatecard');
 function showGate(html){ gatecard.innerHTML=html; gate.style.display='flex'; }
@@ -1442,10 +1548,12 @@ function save(){
 
 function authUI(authed){
   const lb=document.getElementById('logoutBtn'), who=document.getElementById('whoami'), sd=document.getElementById('syncDot');
+  const admBtn=document.getElementById('adminNavBtn');
   lb.style.display = authed?'':'none';
   who.style.display = authed?'':'none';
   sd.style.display  = authed?'':'none';
-  if(authed){ who.textContent='Hi, '+(UNAME||'').split(' ')[0]; setSync(true); }
+  if(admBtn) admBtn.style.display = (authed && IS_ADMIN) ? '' : 'none';
+  if(authed){ who.textContent='Hi, '+(UNAME||'').split(' ')[0]+(IS_ADMIN?' · admin':''); setSync(true); }
 }
 
 /* ---- SETUP: paste the deployed /exec URL ---- */
@@ -1475,22 +1583,24 @@ function showLogin(){
     <label class="fld"><span>Password</span><input id="lp" type="password" autocomplete="current-password"/></label>
     <div id="gerr" class="gerr"></div>
     <button class="btn" style="width:100%" onclick="doLogin()">Log in</button>
-    <div class="grow"><a onclick="showSignup()">Create account</a> · <a onclick="showSetup()">Backend settings</a></div>`);
+    <div class="grow"><a onclick="showSignup()">Create account</a></div>`);
   setTimeout(()=>{ const e=document.getElementById('lp'); if(e) e.addEventListener('keydown',ev=>{ if(ev.key==='Enter') doLogin(); }); },0);
 }
 async function doLogin(){
   const u=document.getElementById('lu').value.trim(), p=document.getElementById('lp').value, err=document.getElementById('gerr');
   err.textContent='Signing in…';
   try{ const r=await api('login',{username:u,password:p});
-    if(r&&r.ok){ TOKEN=r.token; UNAME=r.name||u;
-      try{ localStorage.setItem('isha_token',TOKEN); localStorage.setItem('isha_name',UNAME); }catch(e){}
-      await afterAuth(); }
-    else err.textContent=(r&&r.error)||'Login failed.'; }
+    if(r&&r.ok){
+      TOKEN=r.token; UNAME=r.name||u; IS_ADMIN=!!r.admin;
+      try{ localStorage.setItem('isha_token',TOKEN); localStorage.setItem('isha_name',UNAME); localStorage.setItem('isha_admin',IS_ADMIN?'1':'0'); }catch(e){}
+      await afterAuth();
+    } else err.textContent=(r&&r.error)||'Login failed.'; }
   catch(e){ err.textContent='Network error reaching the backend.'; }
 }
 async function doLogout(){
   try{ if(TOKEN) await api('logout',{token:TOKEN}); }catch(e){}
-  TOKEN=''; UNAME=''; try{ localStorage.removeItem('isha_token'); localStorage.removeItem('isha_name'); }catch(e){}
+  TOKEN=''; UNAME=''; IS_ADMIN=false;
+  try{ localStorage.removeItem('isha_token'); localStorage.removeItem('isha_name'); localStorage.removeItem('isha_admin'); }catch(e){}
   authUI(false); showLogin();
 }
 
@@ -1511,8 +1621,38 @@ function previewLocal(){
 }
 
 /* nav + boot */
-function showSignup(){ showGate(`<div class="glogo">${LOGO}</div><h2>Isha Karnataka</h2><p class="gsub">Create your account.</p><label class="fld"><span>Full name</span><input id="sn"/></label><label class="fld"><span>Username</span><input id="su" autocomplete="username"/></label><label class="fld"><span>Password</span><input id="sp" type="password" autocomplete="new-password"/></label><div id="gerr" class="gerr"></div><button class="btn" style="width:100%" onclick="doSignup()">Create account</button><div class="grow"><a onclick="showLogin()">Back to login</a></div>`); }
-async function doSignup(){ const n=document.getElementById('sn').value.trim(), u=document.getElementById('su').value.trim(), p=document.getElementById('sp').value, err=document.getElementById('gerr'); if(!u||!p){ err.textContent='Username and password required.'; return; } err.textContent='Creating account…'; try{ const r=await api('signup',{username:u,password:p,name:n}); if(r&&r.ok){ TOKEN=r.token; UNAME=r.name||n||u; try{ localStorage.setItem('isha_token',TOKEN); localStorage.setItem('isha_name',UNAME); }catch(e){} await afterAuth(); } else err.textContent=(r&&r.error)||'Signup failed.'; }catch(e){ err.textContent='Network error reaching the backend.'; } }
+function showSignup(){
+  showGate(`<div class="glogo">${LOGO}</div><h2>Isha Karnataka</h2>
+    <p class="gsub">Create your account. An admin will approve access before you can log in.</p>
+    <label class="fld"><span>Full name</span><input id="sn"/></label>
+    <label class="fld"><span>Username</span><input id="su" autocomplete="username"/></label>
+    <label class="fld"><span>Password</span><input id="sp" type="password" autocomplete="new-password"/></label>
+    <div id="gerr" class="gerr"></div>
+    <button class="btn" style="width:100%" onclick="doSignup()">Create account</button>
+    <div class="grow"><a onclick="showLogin()">Back to login</a></div>`);
+}
+async function doSignup(){
+  const n = document.getElementById('sn').value.trim();
+  const u = document.getElementById('su').value.trim();
+  const p = document.getElementById('sp').value;
+  const err = document.getElementById('gerr');
+  if(!u || !p){ err.textContent = 'Username and password required.'; return; }
+  err.textContent = 'Creating account…';
+  try {
+    const r = await api('signup', {username:u, password:p, name:n});
+    if(r && r.ok){
+      // Pending-approval flow: do NOT auto-login. Show a confirmation screen.
+      showGate(`<div class="glogo">${LOGO}</div>
+        <h2>Account requested</h2>
+        <p class="gsub">Thanks${n?', '+n.split(' ')[0]:''}. Your account <b>${u}</b> has been created and is now waiting for an admin to approve access. You'll be able to log in once that's done.</p>
+        <button class="btn" style="width:100%" onclick="showLogin()">Back to login</button>`);
+    } else {
+      err.textContent = (r && r.error) || 'Signup failed.';
+    }
+  } catch(e){
+    err.textContent = 'Network error reaching the backend.';
+  }
+}
 document.getElementById('logoutBtn').onclick=doLogout;
 async function boot(){
   showGate('<p class="gsub" style="margin:34px 0">Loading…</p>');
