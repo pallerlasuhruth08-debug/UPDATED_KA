@@ -191,23 +191,6 @@
   #whoami{font-size:12.5px;color:var(--muted);font-weight:700;align-self:center;margin-left:4px}
   #syncDot{font-size:11.5px;font-weight:700;align-self:center;margin-left:2px}
   #logoutBtn{color:#b14040 !important;border-color:#e3b1b1 !important}
-
-/* sector coordinator */
-.coord-block{background:#f9fafb;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px}
-.coord-block .ct{font-weight:800;font-size:11.5px;color:var(--slate);margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px}
-.coord-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.coord-row .av{width:34px;height:34px;border-radius:50%;background:var(--slate);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex:none}
-.coord-row .cn{font-weight:700;font-size:14px}
-.coord-row .cm{font-size:12px;color:var(--muted)}
-.sector-group-label{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:20px 0 8px;display:flex;align-items:center;gap:10px}
-.sector-group-label::after{content:'';flex:1;height:1px;background:var(--line)}
-.profile-section{font-weight:800;font-size:11.5px;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--line)}
-.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
-@media(max-width:520px){.profile-grid{grid-template-columns:1fr}}
-.person{cursor:pointer}
-.person:hover{border-color:var(--slate)}
-.person .phone{font-size:11.5px;color:var(--muted);margin-top:2px}
-
 </style>
 </head>
 <body>
@@ -338,7 +321,7 @@ function mk(c){
 function sec(name, centres, taluks){
   const kids=centres.map(mk);
   if(taluks) taluks.forEach(t=>kids.push(node(t,'place','sub',{},[])));
-  const _n=node(name,'sector','sector',{},kids); _n.sectorCoord=null; _n.sectorSupport=null; return _n;
+  return node(name,'sector','sector',{},kids);
 }
 
 const STATE = node('Karnataka','region','region',{},[
@@ -384,8 +367,7 @@ function assignedCount(n, roleSet){ return roleSet.filter(r=>n.assign[r]).length
 
 /* walk all "place" nodes (centres/sub/micro/super + promoted sectors) */
 function allPlaces(root=STATE, acc=[]){ for(const c of root.children){ if(c.kind==='place') acc.push(c); allPlaces(c,acc); } return acc; }
-const BLR_SECTORS=['Hebbal','Indiranagar - Koramangala','Jayanagar - BG Road','Marathahalli - Whitefield','Vijayanagar - Malleswaram - Ecity'];
-function allSectors(){ const s=STATE.children.filter(c=>c.kind==='sector'); return [...s.filter(x=>BLR_SECTORS.includes(x.name)),...s.filter(x=>!BLR_SECTORS.includes(x.name))]; }
+function allSectors(){ return STATE.children.filter(c=>c.kind==='sector'); }
 
 /* dashboard metrics: PRIORITY roles only */
 function metrics(){
@@ -414,7 +396,7 @@ function roster(){
   const out=[];
   allPlaces().forEach(p=>{
     Object.entries(p.assign).forEach(([role,person])=>{
-      if(personHas(person)) out.push({person:personName(person), mobile:personMobile(person), profession:personProfession(person), role, place:p.name, stage:p.stage, placeId:p.id});
+      if(personHas(person)) out.push({person:personName(person), mobile:personMobile(person), profession:personProfession(person), role, place:p.name, stage:p.stage});
     });
   });
   return out;
@@ -460,6 +442,244 @@ function progFor(n){
   return {got,need:pr.length,pct};
 }
 
+/* ---------- HOME: region + dashboard + sectors ---------- */
+function renderHome(){
+  const m=metrics();
+  let h='';
+  h+=`<h1>Karnataka</h1><p class="sub">Top layer — pick a sector to drill in. The dashboard tracks <b>priority roles</b> (the three triangle corners) across every centre.</p>`;
+
+  h+=`<div class="kpis">
+    <div class="kpi"><div class="n">${m.byStage.sector}</div><div class="l">Sectors</div></div>
+    <div class="kpi"><div class="n">${m.places}</div><div class="l">Centres mapped</div><small>micro → super</small></div>
+    <div class="kpi"><div class="n">${m.got}<small> / ${m.need}</small></div><div class="l">Priority roles identified</div>
+      <div class="bar"><i style="width:${m.pct}%"></i></div></div>
+    <div class="kpi"><div class="n" style="color:var(--warn)">${m.pending}</div><div class="l">Priority roles pending</div></div>
+  </div>`;
+
+  h+=`<div class="stage-strip">`;
+  STAGE_SEQ.forEach(s=>{ h+=`<div class="stage-pill"><div class="n">${m.byStage[s]||0}</div><div class="l">${STAGE_META[s].label}s</div></div>`; });
+  h+=`</div>`;
+
+  h+=`<h2>Sectors</h2>`;
+  h+=`<div class="grid">`;
+  allSectors().forEach(s=>{
+    const places=allPlaces(s);
+    let need=0,got=0; places.forEach(p=>{const pr=priorityRequired(p);need+=pr.length;got+=assignedCount(p,pr);});
+    const pct=need?Math.round(got/need*100):0;
+    h+=`<div class="card click" onclick='go("sector",${JSON.stringify(PATH.concat(s.id))})'>
+      <span class="tag sector">Sector</span>
+      <h3>${s.name}</h3>
+      <div class="meta">${places.length} centre${places.length!==1?'s':''} inside</div>
+      <div class="foot"><div class="mini-prog">
+        <div class="lbl"><span>Priority roles</span><span>${got}/${need}</span></div>
+        <div class="bar"><i style="width:${pct}%"></i></div>
+      </div></div>
+    </div>`;
+  });
+  h+=`<button class="addcard" onclick="addSector()"><div style="font-size:26px;line-height:1">＋</div>Add sector</button>`;
+  h+=`</div>`;
+
+  h+=`<div class="banner">Ideal next step: replace these sector cards with a clickable <b>Karnataka map</b>. The data model already supports it — each sector is a node, so a map is just another way to render the same drill-in.</div>`;
+  app.innerHTML=h;
+}
+
+/* ---------- SECTOR: list centres ---------- */
+function renderSector(){
+  const s=nodeByPath();
+  let h=crumbs();
+  h+=`<h1>${s.name} <span class="tag sector" style="vertical-align:middle">Sector</span></h1>`;
+  h+=`<p class="sub">A sector is a group of centres. Open a centre to classify it, split it, or assign roles. You can also promote a mature centre into its own sector.</p>`;
+
+  const places=s.children.filter(c=>c.kind==='place');
+  h+=`<div class="grid">`;
+  places.forEach(p=>h+=placeCard(p));
+  /* Add centre / Remove centre / Areas buttons moved into the centre view below */
+  h+=`</div>`;
+  app.innerHTML=h;
+}
+
+function placeCard(p){
+  const meta=STAGE_META[p.stage]; const pr=progFor(p);
+  const kids=p.children.length;
+  return `<div class="card click" onclick='go("place",${JSON.stringify(currentPathTo(p.id))})'>
+    <span class="tag ${meta.tag}">${meta.label}</span>
+    <h3>${p.name}</h3>
+    <div class="meta">${meta.need}${kids?` · ${kids} sub-entit${kids!==1?'ies':'y'}`:''}</div>
+    <div class="foot"><div class="mini-prog">
+      <div class="lbl"><span>Priority roles</span><span>${pr.got}/${pr.need}</span></div>
+      <div class="bar"><i style="width:${pr.pct}%"></i></div>
+    </div></div>
+  </div>`;
+}
+/* build a PATH array down to a node id */
+function currentPathTo(id){
+  const chain=[]; let cur=find(id);
+  while(cur && cur.id!==STATE.id){ chain.unshift(cur.id); cur=parentOf(cur.id); }
+  return chain;
+}
+
+/* ---------- PLACE (centre/sub/micro/super): classify, triangle, roles, split ---------- */
+function renderPlace(){
+  const n=nodeByPath();
+  const meta=STAGE_META[n.stage];
+  let h=crumbs();
+  h+=`<div class="row" style="margin-top:6px"><h1 style="margin:0">${n.name}</h1><span class="tag ${meta.tag}" style="align-self:center">${meta.label}</span></div>`;
+  h+=`<p class="sub">Classify where this entity stands today, see the roles that unlock at each stage, assign people, and split it into smaller centres when you're ready.</p>`;
+
+  h+=`<div class="split">`;
+
+  /* LEFT: classify + triangle */
+  h+=`<div class="panel tri-wrap">
+    <h3 style="align-self:flex-start">1 · Classify this entity</h3>
+    <p class="hint" style="align-self:flex-start">What level is it right now? Roles unlock automatically as you move up.</p>
+    <div class="stages" style="width:100%">`;
+  STAGE_SEQ.forEach(s=>{
+    h+=`<div class="stage-opt ${n.stage===s?'on':''}" onclick='setStage("${n.id}","${s}")'>
+      ${STAGE_META[s].label.replace('-centre','-c.').replace('Super-c.','Super')}
+      <small>${s==='micro'?'1 role':s==='sub'?'3 roles':s==='centre'?'9 roles':s==='sector'?'group':'?'}</small>
+    </div>`;
+  });
+  h+=`</div>`;
+  h+=`<div class="legend">
+    <span><i style="background:var(--good)"></i>Assigned</span>
+    <span><i style="background:#cfd4e3"></i>Needed · pending</span>
+    <span><i style="background:#eef0f6;border:1px solid #e2e5ee"></i>Future stage</span>
+  </div>`;
+  if(n.stage==='sector') h+=`<div class="note" style="width:100%">You've promoted this to a <b>Sector</b>. It now groups centres rather than holding its own roles — add centres below.</div>`;
+  h+=`</div>`;
+
+  /* RIGHT: roles + actions */
+  h+=`<div>`;
+  if(n.stage==='sector'){
+    h+=`<div class="panel"><h3>Centres in this sector</h3><p class="hint">This entity graduated to a sector. Add the centres that sit under it.</p>`;
+    h+= childrenBlock(n,'centre');
+    h+=`</div>`;
+  } else {
+    h+=`<div class="panel"><h3>2 · Roles for a ${meta.label}</h3>
+      <p class="hint">Priority roles count toward the dashboard. Next-level roles plug in as the centre matures — click any role to open its toolkit & assign a person.</p>
+      <div class="role-list">`;
+    const req=requiredRoles(n);
+    ROLE_ORDER.forEach(rk=>{
+      const r=ROLES[rk]; const active=req.includes(rk); const _whoVal=n.assign[rk]; const who=personName(_whoVal); const whoMobile=personMobile(_whoVal); const whoProf=personProfession(_whoVal);
+      const dot = who?'var(--good)':(active?'var(--warn)':'#cfd4e3');
+      h+=`<div class="role ${active?'':'future'}" onclick='openRole("${n.id}","${rk}")'>
+        <span class="dot" style="background:${dot}"></span>
+        <div>
+          <div class="nm">${r.name}</div>
+          <div class="who">${who?(who+(whoProf||whoMobile?` <span style="color:var(--muted);font-weight:500">· ${[whoProf,whoMobile].filter(Boolean).join(" · ")}</span>`:"")):(active?'Not yet identified':'Unlocks at higher stage')}</div>
+        </div>
+        <div class="right">
+          <span class="pri ${(PRIORITY_BY_STAGE[n.stage]||[]).includes(rk)?'p':'n'}">${(PRIORITY_BY_STAGE[n.stage]||[]).includes(rk)?'Priority':'Next-level'}</span>
+          ${who?'<span class="chip-assigned">✓</span>':(active?'<span class="chip-pending">●</span>':'')}
+        </div>
+      </div>`;
+    });
+    h+=`</div></div>`;
+
+    /* clusters / nest + promote */
+    h+=`<div class="panel" style="margin-top:18px">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <h3 style="margin:0">3 · Map clusters (sub-areas)</h3>
+      </div>
+      <p class="hint">Map sub-areas: a Centre can contain Sub-centres and Micro-centres; a Sub-centre can contain Micro-centres. Every cluster is its own entity you can grow. Use the Sector button above to promote this centre.</p>`;
+    h+= childrenBlock(n,'place');
+    h+=`</div>`;
+  }
+  h+=`</div>`; // right
+  h+=`</div>`; // split
+  app.innerHTML=h;
+}
+
+function childrenBlock(n, mode){
+  const isSector = mode==='centre';
+  const unit = isSector ? 'centre' : 'cluster';
+  let h='';
+  if(n.children.length===0){
+    h+=`<div class="empty">No ${unit}s ${isSector?'added':'mapped'} yet.</div>`;
+  } else {
+    n.children.forEach(c=>{
+      const meta=STAGE_META[c.stage]; const pr=progFor(c);
+      h+=`<div class="child" onclick='go("place",${JSON.stringify(currentPathTo(c.id))})'>
+        <span class="tag ${meta.tag}">${meta.label}</span>
+        <div class="nm">${c.name}</div>
+        <div class="right">
+          <span class="who" style="font-size:12px;color:var(--muted)">${pr.need?`${pr.got}/${pr.need} priority`:'group'}</span>
+          <span style="color:#c4cadd">›</span>
+        </div>
+      </div>`;
+    });
+  }
+  h+=`<div class="row" style="margin-top:12px">
+        <button class="btn sm" onclick='addPlace("${n.id}")'>＋ ${isSector?'Add centre':'Map a cluster'}</button>${isSector?`<button class="btn sm danger" style="margin-left:8px" onclick='removeCentrePicker("${n.id}")'>− Remove centre</button><button class="btn sm" style="margin-left:8px;color:#3a4f93;border-color:#b4c2e6" onclick='showCentreAreas("${n.id}")'>⌖ Areas</button>`:''}
+      </div>`;
+  return h;
+}
+
+/* ---------- triangle SVG ---------- */
+function triangleSVG(n){
+  const req=requiredRoles(n);
+  let h='<svg class="tri" viewBox="-6 -6 312 272">';
+  ROLE_ORDER.forEach(rk=>{
+    const r=ROLES[rk]; const active=req.includes(rk); const _whoVal2=n.assign[rk]; const who=personName(_whoVal2);
+    let fill='#eef0f6'; // future
+    if(active) fill = who ? r.color : '#cfd4e3';
+    const op = active?1:.55;
+    h+=`<polygon points="${TRI[rk]}" fill="${fill}" opacity="${op}" onclick='openRole("${n.id}","${rk}")'>
+        <title>${r.name}${who?' — '+who:active?' — pending':' — future'}</title></polygon>`;
+  });
+  ROLE_ORDER.forEach(rk=>{
+    const r=ROLES[rk]; const active=req.includes(rk); const [x,y]=TRI_LABEL[rk];
+    const lab = r.name.toUpperCase();
+    h+=`<text x="${x}" y="${y}" class="${active?'':'lite'}">${lab.length>10?lab.slice(0,9)+'…':lab}</text>`;
+  });
+  h+='</svg>';
+  return h;
+}
+
+/* ---------- ROLES reference page ---------- */
+function renderRoles(){
+  let h=`<h1>Roles &amp; Responsibilities</h1>
+  <p class="sub">The toolkit every onboarded team member sees. Priority roles (the triangle corners) are required even for the smallest centre; next-level roles plug in as a centre matures.</p>`;
+  h+=`<div class="grid">`;
+  ROLE_ORDER.forEach(rk=>{
+    const r=ROLES[rk];
+    h+=`<div class="card">
+      <div class="row"><span class="dot" style="width:12px;height:12px;border-radius:50%;background:${r.color};display:inline-block"></span>
+        <h3 style="margin:0">${r.name}</h3>
+        <span class="pri ${r.priority?'p':'n'}" style="margin-left:auto">${r.priority?'Priority':'Next-level'}</span></div>
+      <div class="meta" style="margin:8px 0 10px">${r.blurb}</div>
+      <div class="resp">${r.resp.map(x=>`<div class="it"><b>›</b><span>${x}</span></div>`).join('')}</div>
+      <div class="toolkit"><div class="kv"><span class="k">POC</span><span>${r.poc}</span></div>
+        <div class="kv"><span class="k">Toolkit</span><span><a href="${r.link}" target="_blank">${r.tool} ↗</a></span></div></div>
+    </div>`;
+  });
+  h+=`</div>`;
+  h+=`<div class="banner">Future build: make each responsibility <b>measurable</b> (targets + check-ins), and turn each toolkit into a live ClickUp template the role-holder can launch in one click.</div>`;
+  app.innerHTML=h;
+}
+
+/* ---------- PEOPLE page ---------- */
+function renderPeople(){
+  const r=roster();
+  let h=`<h1>People on the platform</h1>
+  <p class="sub">Everyone onboarded into a role. Each person gets access to this repository and can see who else is in the network.</p>`;
+  if(r.length===0){ h+=`<div class="empty">No one assigned yet — open a centre and assign roles.</div>`; app.innerHTML=h; return; }
+  h+=`<div class="people">`;
+  r.forEach(x=>{
+    const role=ROLES[x.role];
+    const initials=(x.person||'').split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+    h+=`<div class="person"><div class="av" style="background:${role.color}">${initials}</div>
+      <div class="nm">${x.person}${x.profession?` <span style="color:var(--muted);font-weight:500;font-size:12px">· ${x.profession}</span>`:''}</div>
+      <div class="rl">${role.name} <span class="pri ${role.priority?'p':'n'}" style="margin-left:4px">${role.priority?'Priority':'Next'}</span></div>
+      <div class="loc">${x.place} · ${STAGE_META[x.stage].label}${x.mobile?` · <a href="tel:${x.mobile.replace(/[^0-9+]/g,'')}" style="color:inherit">📞 ${x.mobile}</a>`:''}</div></div>`;
+  });
+  h+=`</div>`;
+  app.innerHTML=h;
+}
+
+/* =========================================================================
+   ACTIONS
+   ========================================================================= */
 function go(view, path){ VIEW=view; PATH=path||[]; window.scrollTo(0,0); render(); }
 document.querySelectorAll('#nav button[data-view]').forEach(b=>b.onclick=()=>go(b.dataset.view, []));
 
