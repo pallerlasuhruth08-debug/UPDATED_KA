@@ -492,7 +492,7 @@
 <header class="top">
   <div class="top-inner">
     <button class="logo" id="logoHome" type="button" aria-label="Go to home">
-      <svg class="mk" viewBox="0 0 100 90" aria-hidden="true"><polygon points="50,4 96,86 4,86" fill="#c0492d"/></svg>
+      <svg class="mk" viewBox="0 0 100 90" aria-hidden="true"><polygon points="50,4 96,86 4,86" fill="#5b6a9e"/></svg>
       Isha Karnataka
     </button>
     <div class="header-group">
@@ -1916,7 +1916,7 @@ try{ API_URL=localStorage.getItem('isha_api')||DEFAULT_API_URL; TOKEN=localStora
 const gate=document.getElementById('gate'), gatecard=document.getElementById('gatecard');
 function showGate(html){ gatecard.innerHTML=html; gate.style.display='flex'; }
 function hideGate(){ gate.style.display='none'; }
-const LOGO='<svg viewBox="0 0 100 90" width="34"><polygon points="50,4 96,86 4,86" fill="#c0492d"/></svg>';
+const LOGO='<svg viewBox="0 0 100 90" width="34"><polygon points="50,4 96,86 4,86" fill="#5b6a9e"/></svg>';
 
 async function api(action, payload){
   const body=JSON.stringify(Object.assign({action}, payload||{}));
