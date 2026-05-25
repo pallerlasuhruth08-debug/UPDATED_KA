@@ -3,7 +3,23 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Isha Karnataka (Prototype)</title>
+<!-- Content Security Policy — limits damage from XSS, blocks framing (clickjacking),
+     forbids external scripts/objects/forms, restricts network calls to backend. -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data:;
+  font-src 'self' data:;
+  connect-src 'self' https://script.google.com https://*.googleusercontent.com https://*.workers.dev;
+  frame-ancestors 'none';
+  base-uri 'self';
+  form-action 'self';
+  object-src 'none';
+">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Isha Karnataka</title>
 <style>
   :root{
     --slate:#5b6a9e;        /* corner / priority roles */
@@ -535,6 +551,21 @@
 <footer class="ft">Isha Karnataka · interactive prototype · data lives in your browser session — edit freely</footer>
 
 <script>
+/* Defence-in-depth frame-busting: refuse to render inside a foreign frame
+   (clickjacking protection on top of the CSP frame-ancestors directive). */
+(function(){
+  try {
+    if (window.top !== window.self) {
+      document.documentElement.style.display = 'none';
+      window.top.location = window.self.location;
+    }
+  } catch (e) {
+    // Cross-origin access denied — we're definitely in a frame. Blank the page.
+    document.documentElement.style.display = 'none';
+    document.body && (document.body.innerHTML = '');
+  }
+})();
+
 /* =========================================================================
    ROLE LIBRARY  (names from your model; responsibilities/POC/toolkit are
    editable placeholders — correct them once you see them live)
@@ -919,7 +950,7 @@ function crumbs(){
     const view = n.kind==='sector' ? 'sector':'place';
     const last = i===PATH.length-1;
     html+=' › ';
-    html+= last ? `<b>${n.name}</b>` : `<span class="c" onclick='go("${view}",${JSON.stringify(acc)})'>${n.name}</span>`;
+    html+= last ? `<b>${esc(n.name)}</b>` : `<span class="c" onclick='go("${view}",${JSON.stringify(acc)})'>${esc(n.name)}</span>`;
   });
   html+='</div>';
   return html;
@@ -987,8 +1018,8 @@ function renderHome(){
       const coord = personName(s.assign && s.assign.coordinator);
       g+=`<div class="card click" onclick='go("sector",${JSON.stringify(PATH.concat(s.id))})'>
         <span class="tag sector">Sector</span>
-        <h3>${s.name}</h3>
-        <div class="meta">${places.length} centre${places.length!==1?'s':''} inside${coord?` · Coordinator: <b>${coord}</b>`:' · <span style="color:var(--warn)">Coordinator pending</span>'}</div>
+        <h3>${esc(s.name)}</h3>
+        <div class="meta">${places.length} centre${places.length!==1?'s':''} inside${coord?` · Coordinator: <b>${esc(coord)}</b>`:' · <span style="color:var(--warn)">Coordinator pending</span>'}</div>
         <div class="foot"><div class="mini-prog">
           <div class="lbl"><span>Priority roles</span><span>${got}/${need}</span></div>
           <div class="bar"><i style="width:${pct}%"></i></div>
@@ -1060,7 +1091,7 @@ function renderSector(){
   const s=nodeByPath();
   if(!s.assign) s.assign = {};
   let h=crumbs();
-  h+=`<h1>${s.name} <span class="tag sector" style="vertical-align:middle">Sector</span></h1>`;
+  h+=`<h1>${esc(s.name)} <span class="tag sector" style="vertical-align:middle">Sector</span></h1>`;
   h+=`<p class="sub">A sector is a group of centres. Assign a Sector Coordinator and Support below, then open any centre to classify it, split it, or assign its roles.</p>`;
 
   /* Sector-level leadership */
@@ -1074,7 +1105,7 @@ function renderSector(){
   h+=`</div></div>`;
 
   /* Centres in sector */
-  h+=`<h2 style="margin-top:6px">Centres in ${s.name}</h2>`;
+  h+=`<h2 style="margin-top:6px">Centres in ${esc(s.name)}</h2>`;
   const places=s.children.filter(c=>c.kind==='place');
   h+=`<div class="grid">`;
   places.forEach(p=>h+=placeCard(p));
@@ -1088,11 +1119,11 @@ function coordCard(personObj, meta, onclickJs){
   const sub = [personProfession(personObj), personMobile(personObj)].filter(Boolean).join(' · ');
   const initials = (who||'').split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
   return `<div class="coord-card ${who?'assigned':''}" onclick='${onclickJs}'>
-    <div class="av" style="${who?`background:${meta.color};color:#fff`:''}">${who?initials:'+'}</div>
+    <div class="av" style="${who?`background:${meta.color};color:#fff`:''}">${esc(who?initials:'+')}</div>
     <div class="body">
       <div class="lbl">${meta.name}</div>
-      <div class="nm">${who||'<span style="color:var(--muted);font-weight:600">Not yet assigned</span>'}</div>
-      <div class="meta">${who?(sub||'Click to view & edit profile'):meta.blurb}</div>
+      <div class="nm">${who?esc(who):'<span style="color:var(--muted);font-weight:600">Not yet assigned</span>'}</div>
+      <div class="meta">${who?esc(sub||'Click to view & edit profile'):meta.blurb}</div>
     </div>
     <div class="arr">›</div>
   </div>`;
@@ -1103,7 +1134,7 @@ function placeCard(p){
   const kids=p.children.length;
   return `<div class="card click" onclick='go("place",${JSON.stringify(currentPathTo(p.id))})'>
     <span class="tag ${meta.tag}">${meta.label}</span>
-    <h3>${p.name}</h3>
+    <h3>${esc(p.name)}</h3>
     <div class="meta">${meta.need}${kids?` · ${kids} sub-entit${kids!==1?'ies':'y'}`:''}</div>
     <div class="foot"><div class="mini-prog">
       <div class="lbl"><span>Priority roles</span><span>${pr.got}/${pr.need}</span></div>
@@ -1123,7 +1154,7 @@ function renderPlace(){
   const n=nodeByPath();
   const meta=STAGE_META[n.stage];
   let h=crumbs();
-  h+=`<div class="row" style="margin-top:6px"><h1 style="margin:0">${n.name}</h1><span class="tag ${meta.tag}" style="align-self:center">${meta.label}</span></div>`;
+  h+=`<div class="row" style="margin-top:6px"><h1 style="margin:0">${esc(n.name)}</h1><span class="tag ${meta.tag}" style="align-self:center">${meta.label}</span></div>`;
   h+=`<p class="sub">Classify where this entity stands today, see the roles that unlock at each stage, assign people, and split it into smaller centres when you're ready.</p>`;
 
   h+=`<div class="split">`;
@@ -1185,7 +1216,7 @@ function renderPlace(){
         <span class="dot" style="background:${dot}"></span>
         <div>
           <div class="nm">${r.name}</div>
-          <div class="who">${who?(who+(whoProf||whoMobile?` <span style="color:var(--muted);font-weight:500">· ${[whoProf,whoMobile].filter(Boolean).join(" · ")}</span>`:"")):(active?'Not yet identified':'Unlocks at higher stage')}</div>
+          <div class="who">${who?(esc(who)+(whoProf||whoMobile?` <span style="color:var(--muted);font-weight:500">· ${esc([whoProf,whoMobile].filter(Boolean).join(" · "))}</span>`:"")):(active?'Not yet identified':'Unlocks at higher stage')}</div>
         </div>
         <div class="right">
           <span class="pri ${(PRIORITY_BY_STAGE[n.stage]||[]).includes(rk)?'p':'n'}">${(PRIORITY_BY_STAGE[n.stage]||[]).includes(rk)?'Priority':'Next-level'}</span>
@@ -1220,7 +1251,7 @@ function childrenBlock(n, mode){
       const meta=STAGE_META[c.stage]; const pr=progFor(c);
       h+=`<div class="child" onclick='go("place",${JSON.stringify(currentPathTo(c.id))})'>
         <span class="tag ${meta.tag}">${meta.label}</span>
-        <div class="nm">${c.name}</div>
+        <div class="nm">${esc(c.name)}</div>
         <div class="right">
           <span class="who" style="font-size:12px;color:var(--muted)">${pr.need?`${pr.got}/${pr.need} priority`:'group'}</span>
           <span style="color:#c4cadd">›</span>
@@ -1244,7 +1275,7 @@ function triangleSVG(n){
     if(active) fill = who ? r.color : '#cfd4e3';
     const op = active?1:.55;
     h+=`<polygon points="${TRI[rk]}" fill="${fill}" opacity="${op}" onclick='openRole("${n.id}","${rk}")'>
-        <title>${r.name}${who?' — '+who:active?' — pending':' — future'}</title></polygon>`;
+        <title>${r.name}${who?' — '+esc(who):active?' — pending':' — future'}</title></polygon>`;
   });
   ROLE_ORDER.forEach(rk=>{
     const r=ROLES[rk]; const active=req.includes(rk); const [x,y]=TRI_LABEL[rk];
@@ -1269,7 +1300,7 @@ function renderRoles(){
       <div class="meta" style="margin:8px 0 10px">${r.blurb}</div>
       <div class="resp">${r.resp.map(x=>`<div class="it"><b>›</b><span>${x}</span></div>`).join('')}</div>
       <div class="toolkit"><div class="kv"><span class="k">POC</span><span>${r.poc}</span></div>
-        <div class="kv"><span class="k">Toolkit</span><span><a href="${r.link}" target="_blank">${r.tool} ↗</a></span></div></div>
+        <div class="kv"><span class="k">Toolkit</span><span><a href="${r.link}" target="_blank" rel="noopener noreferrer">${r.tool} ↗</a></span></div></div>
     </div>`;
   });
   h+=`</div>`;
@@ -1281,24 +1312,27 @@ function renderRoles(){
 function renderPeople(){
   const r=roster();
   let h=`<h1>People on the platform</h1>
-  <p class="sub">Everyone onboarded into a role across the region, sectors and centres. Each person gets access to this portal and can see who else is in the network.</p>`;
+  <p class="sub">Everyone onboarded into a role across the region, sectors and centres.${IS_ADMIN?'':' Contact details (phone, email) are visible to admins only.'}</p>`;
   if(r.length===0){ h+=`<div class="empty">No one assigned yet — open the region, a sector, or a centre and assign roles.</div>`; app.innerHTML=h; return; }
   h+=`<div class="people">`;
   r.forEach(x=>{
     const p = x.person;
     const name = personName(p);
     const initials = name.split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
-    const mob = personMobile(p), email = personEmail(p);
+    // Privacy tiering: phone/email shown to admin only. Profession/role/place are public to all signed-in users.
+    const mob = IS_ADMIN ? personMobile(p) : '';
+    const email = IS_ADMIN ? personEmail(p) : '';
     const prof = personProfession(p), occ = personOccupation(p);
     const programs = personPrograms(p), edu = personEducation(p);
     const extras = [];
-    if(occ) extras.push(`<b>Occupation:</b> ${occ}`);
-    if(edu) extras.push(`<b>Education:</b> ${edu}`);
-    if(programs) extras.push(`<b>Programs:</b> ${programs}`);
-    h+=`<div class="person"><div class="av" style="background:${x.color}">${initials||'·'}</div>
-      <div class="nm">${name}${prof?` <span style="color:var(--muted);font-weight:500;font-size:12px">· ${prof}</span>`:''}</div>
-      <div class="rl">${x.roleLabel} <span class="pri ${x.priority?'p':'n'}" style="margin-left:4px">${x.priority?'Priority':'Next'}</span></div>
-      <div class="loc">${x.place} · ${x.scope}${mob?` · <a href="tel:${mob.replace(/[^0-9+]/g,'')}" style="color:inherit">📞 ${mob}</a>`:''}${email?` · <a href="mailto:${email}" style="color:inherit">✉ ${email}</a>`:''}</div>
+    if(occ) extras.push(`<b>Occupation:</b> ${esc(occ)}`);
+    if(IS_ADMIN && edu) extras.push(`<b>Education:</b> ${esc(edu)}`);
+    if(programs) extras.push(`<b>Programs:</b> ${esc(programs)}`);
+    const safeTelStr = safeTel(mob);
+    h+=`<div class="person"><div class="av" style="background:${x.color}">${esc(initials||'·')}</div>
+      <div class="nm">${esc(name)}${prof?` <span style="color:var(--muted);font-weight:500;font-size:12px">· ${esc(prof)}</span>`:''}</div>
+      <div class="rl">${esc(x.roleLabel)} <span class="pri ${x.priority?'p':'n'}" style="margin-left:4px">${x.priority?'Priority':'Next'}</span></div>
+      <div class="loc">${esc(x.place)} · ${esc(x.scope)}${mob?` · <a href="tel:${esc(safeTelStr)}" style="color:inherit">📞 ${esc(mob)}</a>`:''}${email?` · <a href="mailto:${esc(email)}" style="color:inherit">✉ ${esc(email)}</a>`:''}</div>
       ${extras.length?`<div class="extra">${extras.join(' · ')}</div>`:''}
     </div>`;
   });
@@ -1375,8 +1409,8 @@ function userTable(users, isPending){
     } else {
       actions = `<button class="btn sm danger" onclick='adminReject("${esc(u.username)}")'>Disable</button>`;
     }
-    const centre = u.centre ? u.centre : `<span style="color:var(--muted)">—</span>`;
-    h += `<tr><td><b>${u.username}</b></td><td>${u.name||''}</td><td>${centre}</td><td>${statusBadge}</td><td style="text-align:right">${actions}</td></tr>`;
+    const centre = u.centre ? esc(u.centre) : `<span style="color:var(--muted)">—</span>`;
+    h += `<tr><td><b>${esc(u.username)}</b></td><td>${esc(u.name||'')}</td><td>${centre}</td><td>${statusBadge}</td><td style="text-align:right">${actions}</td></tr>`;
   });
   h += `</tbody></table>`;
   return h;
@@ -1481,14 +1515,14 @@ function showCentreAreas(id){
   const base = 'https://banglore-area-clusters.pallerlasuhruth08.workers.dev';
   let body;
   if(areas && areas.length){
-    body = '<p class="hint">Localities and sub-areas mapped to <b>' + n.name + '</b> centre, sourced from the Bangalore area-clusters dataset.</p>'+
+    body = '<p class="hint">Localities and sub-areas mapped to <b>' + esc(n.name) + '</b> centre, sourced from the Bangalore area-clusters dataset.</p>'+
            '<div class="area-grid" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">' +
-           areas.map(a=>'<span class="chip" style="display:inline-block;padding:6px 10px;border:1px solid #d8dceb;border-radius:14px;background:#f3f5fc;font-size:13px">'+a+'</span>').join('') +
+           areas.map(a=>'<span class="chip" style="display:inline-block;padding:6px 10px;border:1px solid #d8dceb;border-radius:14px;background:#f3f5fc;font-size:13px">'+esc(a)+'</span>').join('') +
            '</div>'+
-           '<div class="kv" style="margin-top:14px"><span class="k">Open full report</span><span><a href="'+base+'/'+(CENTRE_REPORT_SLUG[key])+'" target="_blank">External cluster report ↗</a></span></div>';
+           '<div class="kv" style="margin-top:14px"><span class="k">Open full report</span><span><a href="'+base+'/'+esc(CENTRE_REPORT_SLUG[key])+'" target="_blank" rel="noopener noreferrer">External cluster report ↗</a></span></div>';
   } else {
-    body = '<p class="hint">No mapped areas available for <b>'+n.name+'</b>. You can still view this centre on the external Bangalore area-clusters site.</p>'+
-           '<div class="kv" style="margin-top:10px"><span class="k">External site</span><span><a href="'+base+'/" target="_blank">Bangalore area clusters ↗</a></span></div>';
+    body = '<p class="hint">No mapped areas available for <b>'+esc(n.name)+'</b>. You can still view this centre on the external Bangalore area-clusters site.</p>'+
+           '<div class="kv" style="margin-top:10px"><span class="k">External site</span><span><a href="'+base+'/" target="_blank" rel="noopener noreferrer">Bangalore area clusters ↗</a></span></div>';
   }
   showModal('Areas — ' + n.name, body, '<button class="btn ghost" onclick="closeModal()">Close</button>');
 }
@@ -1534,7 +1568,23 @@ function personEducation(p){ return (!p||typeof p==='string')?'':(p.education||'
 function personPrograms(p){ return (!p||typeof p==='string')?'':(p.programs||''); }
 function personVolunteering(p){ return (!p||typeof p==='string')?'':(p.volunteering||''); }
 function personSocial(p){ return (!p||typeof p==='string')?'':(p.social||''); }
-function esc(v){ return String(v||'').replace(/"/g,'&quot;'); }
+// XSS-safe HTML escape. Safe in both HTML content and double-quoted
+// attribute contexts. Use this for ANY user-supplied data being inserted
+// into innerHTML / template strings.
+function esc(v){
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+// For href="tel:..." / href="mailto:..." — strips characters that could
+// break out of the attribute.
+function escUrl(v){ return encodeURIComponent(String(v == null ? '' : v)); }
+function escAttr(v){ return esc(v); }
+// For "tel:" links, the standard accepts digits/+/-/space/parens only
+function safeTel(v){ return String(v||'').replace(/[^0-9+]/g,''); }
 
 function richProfileFields(p){
   const opts = (list, sel) => list.map(o=>`<option value="${esc(o)}" ${o===sel?'selected':''}>${o}</option>`).join('');
@@ -1591,17 +1641,18 @@ function personReadView(p){
     <div class="rv-head">
       <div class="rv-av">${initials}</div>
       <div>
-        <div class="rv-name">${personName(p)||''}</div>
-        ${personProfession(p) ? `<div class="rv-prof">${personProfession(p)}</div>` : ''}
+        <div class="rv-name">${esc(personName(p)||'')}</div>
+        ${personProfession(p) ? `<div class="rv-prof">${esc(personProfession(p))}</div>` : ''}
       </div>
     </div>`;
   if(rows.length){
     h += `<dl class="rv-list">`;
     rows.forEach(([k,v])=>{
-      let displayV = v;
-      if(k==='Phone') displayV = `<a href="tel:${String(v).replace(/[^0-9+]/g,'')}">${v}</a>`;
-      if(k==='Email') displayV = `<a href="mailto:${v}">${v}</a>`;
-      h += `<div class="rv-row"><dt>${k}</dt><dd>${displayV}</dd></div>`;
+      let displayV;
+      if(k==='Phone')      displayV = `<a href="tel:${esc(safeTel(v))}">${esc(v)}</a>`;
+      else if(k==='Email') displayV = `<a href="mailto:${esc(v)}">${esc(v)}</a>`;
+      else                 displayV = esc(v);
+      h += `<div class="rv-row"><dt>${esc(k)}</dt><dd>${displayV}</dd></div>`;
     });
     h += `</dl>`;
   } else {
@@ -1726,7 +1777,7 @@ function openRole(placeId, roleKey, mode){
     <div class="resp">${r.resp.map(x=>`<div class="it"><b>›</b><span>${x}</span></div>`).join('')}</div>
     <div class="toolkit">
       <div class="kv"><span class="k">Point of contact</span><span>${r.poc}</span></div>
-      <div class="kv"><span class="k">Toolkit</span><span><a href="${r.link}" target="_blank">${r.tool} ↗</a></span></div>
+      <div class="kv"><span class="k">Toolkit</span><span><a href="${r.link}" target="_blank" rel="noopener noreferrer">${r.tool} ↗</a></span></div>
     </div>
     ${editing ? richProfileFields(_w) : personReadView(_w)}
     ${active?'':'<div class="note">This role isn\'t required at the current stage. Assigning it still works — it\'ll count once you classify the centre higher.</div>'}
@@ -1769,7 +1820,7 @@ function openRegionRole(roleKey, mode){
     <div class="resp">${r.resp.map(x=>`<div class="it"><b>›</b><span>${x}</span></div>`).join('')}</div>
     <div class="toolkit">
       <div class="kv"><span class="k">Point of contact</span><span>${r.poc}</span></div>
-      <div class="kv"><span class="k">Toolkit</span><span><a href="${r.link}" target="_blank">${r.tool} ↗</a></span></div>
+      <div class="kv"><span class="k">Toolkit</span><span><a href="${r.link}" target="_blank" rel="noopener noreferrer">${r.tool} ↗</a></span></div>
     </div>
     <div class="profile-section">
       <div class="ps-head">Sub-teams · fractal branches</div>
@@ -1815,7 +1866,7 @@ function openSectorSlot(sectorId, slot, mode){
     <div class="resp">${meta.resp.map(x=>`<div class="it"><b>›</b><span>${x}</span></div>`).join('')}</div>
     <div class="toolkit">
       <div class="kv"><span class="k">Reports to</span><span>${meta.poc}</span></div>
-      <div class="kv"><span class="k">Toolkit</span><span><a href="${meta.link}" target="_blank">${meta.tool} ↗</a></span></div>
+      <div class="kv"><span class="k">Toolkit</span><span><a href="${meta.link}" target="_blank" rel="noopener noreferrer">${meta.tool} ↗</a></span></div>
     </div>
     ${editing ? richProfileFields(_w) : personReadView(_w)}
   `;
@@ -1857,7 +1908,7 @@ function openCentreSlot(placeId, slot, mode){
     <div class="resp">${meta.resp.map(x=>`<div class="it"><b>›</b><span>${x}</span></div>`).join('')}</div>
     <div class="toolkit">
       <div class="kv"><span class="k">Reports to</span><span>${meta.poc}</span></div>
-      <div class="kv"><span class="k">Toolkit</span><span><a href="${meta.link}" target="_blank">${meta.tool} ↗</a></span></div>
+      <div class="kv"><span class="k">Toolkit</span><span><a href="${meta.link}" target="_blank" rel="noopener noreferrer">${meta.tool} ↗</a></span></div>
     </div>
     ${editing ? richProfileFields(_w) : personReadView(_w)}
   `;
@@ -1888,8 +1939,11 @@ function clearCentreSlot(placeId, slot){ const n=find(placeId); if(n.assign) del
    ========================================================================= */
 const scrim=document.getElementById('scrim'), modal=document.getElementById('modal');
 function showModal(title, bodyHTML, footHTML, color){
-  modal.innerHTML=`<div class="mh"><span style="width:14px;height:14px;border-radius:4px;background:${color||'var(--slate)'}"></span>
-    <h3>${title}</h3><button class="x" onclick="closeModal()">×</button></div>
+  // title is HTML-escaped here so callers never need to remember to escape.
+  // Color is validated to a hex/css-variable to keep style context safe.
+  const safeColor = /^(#[0-9a-fA-F]{3,8}|var\(--[a-z-]+\))$/.test(String(color||'')) ? color : 'var(--slate)';
+  modal.innerHTML=`<div class="mh"><span style="width:14px;height:14px;border-radius:4px;background:${safeColor}"></span>
+    <h3>${esc(title)}</h3><button class="x" onclick="closeModal()">×</button></div>
     <div class="mb">${bodyHTML}</div><div class="mf">${footHTML}</div>`;
   scrim.classList.add('show');
 }
@@ -1898,8 +1952,8 @@ scrim.addEventListener('click',e=>{ if(e.target===scrim) closeModal(); });
 
 function modalForm(title, fields, onSave){
   const body=fields.map(f=>{
-    if(f.select) return `<label class="fld"><span>${f.label}</span><select id="f_${f.k}">${f.select}</select></label>`;
-    return `<label class="fld"><span>${f.label}</span><input id="f_${f.k}" placeholder="${f.ph||''}" value="${f.val||''}"/></label>`;
+    if(f.select) return `<label class="fld"><span>${esc(f.label)}</span><select id="f_${esc(f.k)}">${f.select}</select></label>`;
+    return `<label class="fld"><span>${esc(f.label)}</span><input id="f_${esc(f.k)}" placeholder="${esc(f.ph||'')}" value="${esc(f.val||'')}"/></label>`;
   }).join('');
   showModal(title, body, `<button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" id="mSave">Save</button>`);
   fields.forEach(f=>{ if(f.val&&$('#f_'+f.k)) $('#f_'+f.k).value=f.val; });
@@ -1936,7 +1990,23 @@ const LOGO='<svg viewBox="0 0 100 90" width="34"><polygon points="50,4 96,86 4,8
 async function api(action, payload){
   const body=JSON.stringify(Object.assign({action}, payload||{}));
   const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body});
-  return await res.json();
+  const data = await res.json();
+  // Centralised session-expiry / auth-rejection handling. Backend returns
+  // code:'auth_required' when the token is invalid or expired.
+  if(data && data.ok===false && (data.code==='auth_required' || data.error==='Not authenticated.') && action !== 'login' && action !== 'signup' && action !== 'logout' && action !== 'ping'){
+    try{
+      TOKEN=''; UNAME=''; IS_ADMIN=false;
+      localStorage.removeItem('isha_token');
+      localStorage.removeItem('isha_name');
+      localStorage.removeItem('isha_admin');
+    }catch(e){}
+    // Show login with a clear message
+    showGate(`<div class="glogo">${LOGO}</div><h2>Session expired</h2>
+      <p class="gsub">For your security, you were signed out. Please log in again.</p>
+      <button class="btn" style="width:100%" onclick="showLogin()">Log in</button>`);
+    authUI(false);
+  }
+  return data;
 }
 
 function setSync(ok){ const el=document.getElementById('syncDot'); if(!el) return;
@@ -1972,7 +2042,7 @@ function authUI(authed){
     const initials = (UNAME || 'U').split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase() || 'U';
     if(avatar) avatar.textContent = initials;
     if(pmName) pmName.textContent = 'Hi, ' + first;
-    if(pmRole) pmRole.innerHTML  = `Signed in as <b>${UNAME||''}</b>` + (IS_ADMIN ? ' <span class="admin-chip">admin</span>' : '');
+    if(pmRole) pmRole.innerHTML  = `Signed in as <b>${esc(UNAME||'')}</b>` + (IS_ADMIN ? ' <span class="admin-chip">admin</span>' : '');
     setSync(true);
     // Make sure any open menus are closed when auth state changes
     document.getElementById('nav')?.classList.remove('open');
@@ -2059,11 +2129,48 @@ function buildCentreOptions(){
   return html;
 }
 
+// Mirrors backend validatePasswordStrength_. Keep these two in sync.
+function clientPasswordError(pw){
+  if(typeof pw !== 'string' || !pw) return 'Password is required.';
+  if(pw.length < 8)    return 'Password must be at least 8 characters.';
+  if(pw.length > 128)  return 'Password is too long.';
+  if(!/[A-Za-z]/.test(pw)) return 'Password must include at least one letter.';
+  if(!/\d/.test(pw))       return 'Password must include at least one digit.';
+  if(/\s/.test(pw))        return 'Password cannot contain spaces.';
+  return null;
+}
+function scorePassword(pw){
+  let s = 0;
+  if(!pw) return 0;
+  if(pw.length >= 8)  s++;
+  if(pw.length >= 12) s++;
+  if(/[a-z]/.test(pw) && /[A-Z]/.test(pw)) s++;
+  if(/\d/.test(pw)) s++;
+  if(/[^A-Za-z0-9]/.test(pw)) s++;
+  return Math.min(s, 4);
+}
+function updatePasswordMeter(){
+  const pw = document.getElementById('sp');
+  const meter = document.getElementById('pwMeter');
+  const hint = document.getElementById('pwHint');
+  if(!pw || !meter || !hint) return;
+  const score = scorePassword(pw.value);
+  const labels = ['Too weak','Weak','OK','Strong','Excellent'];
+  const colors = ['#b14040','#c07b16','#7a93c4','#2f9e6f','#2f9e6f'];
+  meter.style.background = '#eef0f6';
+  meter.firstChild.style.width = (score*25)+'%';
+  meter.firstChild.style.background = colors[score];
+  const err = clientPasswordError(pw.value);
+  if(!pw.value){ hint.textContent = '8+ chars, at least one letter and one digit'; hint.style.color='var(--muted)'; return; }
+  hint.textContent = err || labels[score] + ' password';
+  hint.style.color = err ? '#b14040' : colors[score];
+}
+
 function showSignup(){
   showGate(`<div class="glogo">${LOGO}</div><h2>Isha Karnataka</h2>
     <p class="gsub">Create your account. An admin will approve access before you can log in.</p>
-    <label class="fld"><span>Full name</span><input id="sn" autocomplete="name"/></label>
-    <label class="fld"><span>Email</span><input id="se" type="email" autocomplete="email" placeholder="you@example.com"/></label>
+    <label class="fld"><span>Full name</span><input id="sn" autocomplete="name" maxlength="100"/></label>
+    <label class="fld"><span>Email</span><input id="se" type="email" autocomplete="email" placeholder="you@example.com" maxlength="200"/></label>
     <label class="fld"><span>Your centre</span>
       <select id="sc">
         <option value="">— select your centre —</option>
@@ -2071,7 +2178,11 @@ function showSignup(){
         <option value="__other">Other / Not listed</option>
       </select>
     </label>
-    <label class="fld"><span>Password</span><input id="sp" type="password" autocomplete="new-password"/></label>
+    <label class="fld"><span>Password</span>
+      <input id="sp" type="password" autocomplete="new-password" minlength="8" maxlength="128" oninput="updatePasswordMeter()"/>
+      <div id="pwMeter" style="height:6px;background:#eef0f6;border-radius:3px;margin-top:6px;overflow:hidden"><div style="height:100%;width:0;transition:width .2s,background .2s"></div></div>
+      <div id="pwHint" style="font-size:12px;color:var(--muted);margin-top:4px">8+ chars, at least one letter and one digit</div>
+    </label>
     <div id="gerr" class="gerr"></div>
     <button class="btn" style="width:100%" onclick="doSignup()">Create account</button>
     <div class="grow"><a onclick="showLogin()">Back to login</a></div>`);
@@ -2086,6 +2197,8 @@ async function doSignup(){
   if(!e || !p){ err.textContent = 'Email and password are required.'; return; }
   if(!/^\S+@\S+\.\S+$/.test(e)){ err.textContent = 'Please enter a valid email address.'; return; }
   if(!c){ err.textContent = 'Please select your centre.'; return; }
+  const pwErr = clientPasswordError(p);
+  if(pwErr){ err.textContent = pwErr; return; }
   err.textContent = 'Creating account…';
   try {
     // Email is the new identifier. We send it as both `email` (canonical) and
@@ -2096,7 +2209,7 @@ async function doSignup(){
     if(r && r.ok){
       showGate(`<div class="glogo">${LOGO}</div>
         <h2>Account requested</h2>
-        <p class="gsub">Thanks${n?', '+n.split(' ')[0]:''}. Your account <b>${e}</b> has been created and is now waiting for an admin to approve access. Once approved, log in with your email and password.</p>
+        <p class="gsub">Thanks${n?', '+esc(n.split(' ')[0]):''}. Your account <b>${esc(e)}</b> has been created and is now waiting for an admin to approve access. Once approved, log in with your email and password.</p>
         <button class="btn" style="width:100%" onclick="showLogin()">Back to login</button>`);
     } else {
       err.textContent = (r && r.error) || 'Signup failed. Check the browser console for details.';
