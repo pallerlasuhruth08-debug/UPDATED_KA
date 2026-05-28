@@ -26,7 +26,7 @@ var T_USERS = 'Users';
 var T_SESS  = 'Sessions';
 var T_AUDIT = 'Audit';
 
-var BACKEND_VERSION = '2026-05-25-hardened';
+var BACKEND_VERSION = '2026-05-26-role-field';
 
 /* ---- security config --------------------------------------------------- */
 var PW_HASH_ITER          = 1000;                  // SHA-256 stretch iterations
@@ -102,12 +102,12 @@ function sheet_(name, headers) {
 
 function ensure_() {
   sheet_(T_DATA);
-  // Users schema (8 cols). Older sheets get the new columns back-filled.
-  var headers = ['username','password','name','active','email','centre','failed_attempts','locked_until'];
+  // Users schema (9 cols). Older sheets get the new columns back-filled.
+  var headers = ['username','password','name','active','email','centre','failed_attempts','locked_until','role'];
   var u = sheet_(T_USERS, headers);
   if (u.getLastRow() < 2) {
     // Bootstrap admin with a HASHED default password
-    u.appendRow(['admin', hashPassword_(DEFAULT_ADMIN_PW), 'Administrator', 'yes', '', '', 0, '']);
+    u.appendRow(['admin', hashPassword_(DEFAULT_ADMIN_PW), 'Administrator', 'yes', '', '', 0, '', 'admin']);
   } else {
     var lastCol = u.getLastColumn();
     var headerRow = u.getRange(1, 1, 1, Math.max(lastCol, headers.length)).getValues()[0];
@@ -252,6 +252,7 @@ function signup_(req) {
   var pass  = String(req.password || '');
   var name  = clampStr_(String(req.name || '').trim(),   MAX_LEN_TEXT);
   var centre= clampStr_(String(req.centre || '').trim(), MAX_LEN_TEXT);
+  var role  = clampStr_(String(req.role   || '').trim(), MAX_LEN_TEXT);
   if (!email || !pass) return { ok: false, error: 'Email and password are required.' };
   if (!validateEmail_(email)) return { ok: false, error: 'Please enter a valid email address.' };
   var pwErr = validatePasswordStrength_(pass);
@@ -266,9 +267,11 @@ function signup_(req) {
       return { ok: false, error: 'If that email is not in use, the account will be created.' };
     }
   }
-  // Use email as username (lowercased for consistency)
-  sh.appendRow([emailLower, hashPassword_(pass), name || emailLower, 'pending', email, centre, 0, '']);
-  audit_(emailLower, 'signup', emailLower, { centre: centre });
+  // Use email as username (lowercased for consistency). Note: the "role" field
+  // is the self-declared role at registration. It does NOT grant any
+  // privilege — admin privileges remain tied to the literal username 'admin'.
+  sh.appendRow([emailLower, hashPassword_(pass), name || emailLower, 'pending', email, centre, 0, '', role]);
+  audit_(emailLower, 'signup', emailLower, { centre: centre, role: role });
   return { ok: true, pending: true };
 }
 
@@ -442,7 +445,8 @@ function list_users_(req) {
       email:    String(rows[i][4] || ''),
       centre:   String(rows[i][5] || ''),
       failed_attempts: parseInt(rows[i][6], 10) || 0,
-      locked:   isLockedOut_(rows[i])
+      locked:   isLockedOut_(rows[i]),
+      role:     String(rows[i][8] || '')
     });
   }
   return { ok: true, users: out };

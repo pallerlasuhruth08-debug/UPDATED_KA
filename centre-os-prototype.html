@@ -1390,7 +1390,7 @@ function paintAdmin(){
 }
 function userTable(users, isPending){
   let h = `<table class="admin-table"><thead><tr>
-    <th>Email / Username</th><th>Full name</th><th>Centre</th><th>Status</th><th style="text-align:right">Action</th>
+    <th>Email / Username</th><th>Full name</th><th>Centre</th><th>Role</th><th>Status</th><th style="text-align:right">Action</th>
   </tr></thead><tbody>`;
   users.forEach(u=>{
     const isAdminRow = (u.username||'').toLowerCase()==='admin';
@@ -1410,7 +1410,8 @@ function userTable(users, isPending){
       actions = `<button class="btn sm danger" onclick='adminReject("${esc(u.username)}")'>Disable</button>`;
     }
     const centre = u.centre ? esc(u.centre) : `<span style="color:var(--muted)">—</span>`;
-    h += `<tr><td><b>${esc(u.username)}</b></td><td>${esc(u.name||'')}</td><td>${centre}</td><td>${statusBadge}</td><td style="text-align:right">${actions}</td></tr>`;
+    const roleLabel = u.role ? esc(labelForRole(u.role)) : `<span style="color:var(--muted)">—</span>`;
+    h += `<tr><td><b>${esc(u.username)}</b></td><td>${esc(u.name||'')}</td><td>${centre}</td><td>${roleLabel}</td><td>${statusBadge}</td><td style="text-align:right">${actions}</td></tr>`;
   });
   h += `</tbody></table>`;
   return h;
@@ -2115,6 +2116,51 @@ function previewLocal(){
 }
 
 /* nav + boot */
+/* Build a grouped <option> list of every role a person could hold —
+   centre-level, sector-level, region-level — sourced from the same role
+   library that the rest of the app uses, so the signup options stay in
+   sync with the actual roles in the system. */
+function buildRoleOptions(){
+  const groups = [
+    { label: 'Centre level', items: [{value:'centre:coordinator', label:'Centre Coordinator'}].concat(
+        ROLE_ORDER.map(k => ({ value:'centre:'+k, label: ROLES[k].name }))
+      )},
+    { label: 'Sector level', items: SECTOR_SLOTS.map(s => ({ value:'sector:'+s, label: SECTOR_SLOT_META[s].name })) },
+    { label: 'Region level', items: REGION_ROLE_ORDER.map(k => ({ value:'region:'+k, label: 'Region — ' + REGION_ROLES[k].name })) },
+    { label: 'Other',        items: [
+        { value:'volunteer', label:'Volunteer / Not yet assigned' },
+        { value:'other',     label:'Other' }
+      ]}
+  ];
+  return groups.map(g =>
+    `<optgroup label="${esc(g.label)}">` +
+    g.items.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('') +
+    `</optgroup>`
+  ).join('');
+}
+
+/* Pretty-print a role token back to a human label (used in admin table etc). */
+function labelForRole(tok){
+  if(!tok) return '';
+  const t = String(tok);
+  if(t==='volunteer') return 'Volunteer / Not yet assigned';
+  if(t==='other')     return 'Other';
+  const parts = t.split(':');
+  if(parts.length !== 2) return t;
+  const scope = parts[0], key = parts[1];
+  if(scope==='centre'){
+    if(key==='coordinator') return 'Centre Coordinator';
+    return ROLES[key] ? ROLES[key].name : key;
+  }
+  if(scope==='sector'){
+    return SECTOR_SLOT_META[key] ? SECTOR_SLOT_META[key].name : key;
+  }
+  if(scope==='region'){
+    return REGION_ROLES[key] ? 'Region — ' + REGION_ROLES[key].name : 'Region — ' + key;
+  }
+  return t;
+}
+
 /* Build a grouped <option> list of all centres (places) under each sector,
    sourced from the current STATE tree. Used to populate the signup-form dropdown. */
 function buildCentreOptions(){
@@ -2178,6 +2224,12 @@ function showSignup(){
         <option value="__other">Other / Not listed</option>
       </select>
     </label>
+    <label class="fld"><span>Your role at the centre / region</span>
+      <select id="sr">
+        <option value="">— select your role —</option>
+        ${buildRoleOptions()}
+      </select>
+    </label>
     <label class="fld"><span>Password</span>
       <input id="sp" type="password" autocomplete="new-password" minlength="8" maxlength="128" oninput="updatePasswordMeter()"/>
       <div id="pwMeter" style="height:6px;background:#eef0f6;border-radius:3px;margin-top:6px;overflow:hidden"><div style="height:100%;width:0;transition:width .2s,background .2s"></div></div>
@@ -2192,11 +2244,13 @@ async function doSignup(){
   const n = document.getElementById('sn').value.trim();
   const e = document.getElementById('se').value.trim();
   const c = document.getElementById('sc').value;
+  const ro = document.getElementById('sr').value;
   const p = document.getElementById('sp').value;
   const err = document.getElementById('gerr');
   if(!e || !p){ err.textContent = 'Email and password are required.'; return; }
   if(!/^\S+@\S+\.\S+$/.test(e)){ err.textContent = 'Please enter a valid email address.'; return; }
   if(!c){ err.textContent = 'Please select your centre.'; return; }
+  if(!ro){ err.textContent = 'Please select the role you hold.'; return; }
   const pwErr = clientPasswordError(p);
   if(pwErr){ err.textContent = pwErr; return; }
   err.textContent = 'Creating account…';
@@ -2204,7 +2258,8 @@ async function doSignup(){
     // Email is the new identifier. We send it as both `email` (canonical) and
     // `username` (back-compat with the existing Users sheet schema).
     const centre = (c === '__other') ? '' : c;
-    const r = await api('signup', {username:e, email:e, password:p, name:n, centre});
+    const role = ro || '';
+    const r = await api('signup', {username:e, email:e, password:p, name:n, centre, role});
     console.log('[signup] response:', r);
     if(r && r.ok){
       showGate(`<div class="glogo">${LOGO}</div>
