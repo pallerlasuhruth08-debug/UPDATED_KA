@@ -1399,15 +1399,16 @@ function userTable(users, isPending){
     else if(u.active==='no' || u.active==='false' || u.active==='disabled') statusBadge = `<span class="badge bd">Disabled</span>`;
     else statusBadge = `<span class="badge ba">Active</span>`;
     let actions = '';
+    const resetBtn = `<button class="btn sm" style="margin-left:6px" onclick='adminResetPassword("${esc(u.username)}")'>Reset password</button>`;
     if(isAdminRow){
       actions = `<span class="meta" style="color:var(--muted);font-size:12px">protected</span>`;
     } else if(u.active==='pending'){
       actions = `<button class="btn sm" onclick='adminApprove("${esc(u.username)}")'>Approve</button>
                  <button class="btn sm danger" style="margin-left:6px" onclick='adminReject("${esc(u.username)}")'>Reject</button>`;
     } else if(u.active==='no' || u.active==='false' || u.active==='disabled'){
-      actions = `<button class="btn sm" onclick='adminApprove("${esc(u.username)}")'>Re-enable</button>`;
+      actions = `<button class="btn sm" onclick='adminApprove("${esc(u.username)}")'>Re-enable</button>${resetBtn}`;
     } else {
-      actions = `<button class="btn sm danger" onclick='adminReject("${esc(u.username)}")'>Disable</button>`;
+      actions = `<button class="btn sm danger" onclick='adminReject("${esc(u.username)}")'>Disable</button>${resetBtn}`;
     }
     const centre = u.centre ? esc(u.centre) : `<span style="color:var(--muted)">—</span>`;
     const roleLabel = u.role ? esc(labelForRole(u.role)) : `<span style="color:var(--muted)">—</span>`;
@@ -1429,6 +1430,17 @@ async function adminReject(username){
     const r = await api('reject_user', {token:TOKEN, username});
     if(r&&r.ok){ updateAdminCache(username, 'no'); paintAdmin(); }
     else alert((r&&r.error)||'Failed to reject.');
+  } catch(e){ alert('Network error.'); }
+}
+async function adminResetPassword(username){
+  if(!confirm(`Reset the password for "${username}"? A new temporary password will be generated. Their current password and any active sessions will stop working.`)) return;
+  try{
+    const r = await api('admin_reset_password', {token:TOKEN, username});
+    if(r&&r.ok && r.temp_password){
+      prompt(`Temporary password for ${username} — copy it and share it securely. They should log in and change it.`, r.temp_password);
+    } else {
+      alert((r&&r.error)||'Failed to reset password.');
+    }
   } catch(e){ alert('Network error.'); }
 }
 function updateAdminCache(username, active){
@@ -2078,8 +2090,98 @@ function showLogin(){
     <label class="fld"><span>Password</span><input id="lp" type="password" autocomplete="current-password"/></label>
     <div id="gerr" class="gerr"></div>
     <button class="btn" style="width:100%" onclick="doLogin()">Log in</button>
-    <div class="grow"><a onclick="showSignup()">Create account</a></div>`);
+    <div class="grow"><a onclick="showSignup()">Create account</a> &nbsp;·&nbsp; <a onclick="showForgot()">Forgot password?</a> &nbsp;·&nbsp; <a onclick="showChangePassword()">Change password</a></div>`);
   setTimeout(()=>{ const e=document.getElementById('lp'); if(e) e.addEventListener('keydown',ev=>{ if(ev.key==='Enter') doLogin(); }); },0);
+}
+
+/* ---- FORGOT PASSWORD (email-based reset code) ---- */
+function showForgot(prefillEmail){
+  showGate(`<div class="glogo">${LOGO}</div><h2>Reset password</h2>
+    <p class="gsub">Enter your email and we’ll send you a 6-digit reset code.</p>
+    <label class="fld"><span>Email</span><input id="fe" type="email" autocomplete="username" value="${esc(prefillEmail||'')}"/></label>
+    <div id="gerr" class="gerr"></div>
+    <button class="btn" style="width:100%" onclick="doForgot()">Send reset code</button>
+    <div class="grow"><a onclick="showResetCode()">I already have a code →</a><br><a onclick="showLogin()">← Back to login</a></div>`);
+  setTimeout(()=>{ const e=document.getElementById('fe'); if(e) e.addEventListener('keydown',ev=>{ if(ev.key==='Enter') doForgot(); }); },0);
+}
+async function doForgot(){
+  const email=document.getElementById('fe').value.trim(), err=document.getElementById('gerr');
+  if(!email){ err.textContent='Please enter your email.'; return; }
+  err.textContent='Sending…';
+  try{
+    const r=await api('forgot_password',{email});
+    if(r&&r.ok){ showResetCode(email); }
+    else { err.textContent=(r&&r.error)||'Could not send the code.'; }
+  }catch(e){ err.textContent='Network error reaching the backend.'; }
+}
+function showResetCode(prefillEmail){
+  showGate(`<div class="glogo">${LOGO}</div><h2>Enter reset code</h2>
+    <p class="gsub">If that email is registered, a 6-digit code is on its way. Enter it below with your new password. The code expires in 15 minutes.</p>
+    <label class="fld"><span>Email</span><input id="re" type="email" autocomplete="username" value="${esc(prefillEmail||'')}"/></label>
+    <label class="fld"><span>Reset code</span><input id="rcode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code"/></label>
+    <label class="fld"><span>New password</span><input id="rn" type="password" autocomplete="new-password" minlength="8" maxlength="128"/></label>
+    <label class="fld"><span>Confirm new password</span><input id="rc2" type="password" autocomplete="new-password" minlength="8" maxlength="128"/></label>
+    <div class="gsub" style="font-size:12px;margin:-4px 0 8px">At least 8 characters, with a letter and a digit.</div>
+    <div id="gerr" class="gerr"></div>
+    <button class="btn" style="width:100%" onclick="doReset()">Set new password</button>
+    <div class="grow"><a onclick="showForgot()">← Send a new code</a> &nbsp;·&nbsp; <a onclick="showLogin()">Back to login</a></div>`);
+  setTimeout(()=>{ const e=document.getElementById('rc2'); if(e) e.addEventListener('keydown',ev=>{ if(ev.key==='Enter') doReset(); }); },0);
+}
+async function doReset(){
+  const email=document.getElementById('re').value.trim();
+  const code=document.getElementById('rcode').value.trim();
+  const newP=document.getElementById('rn').value;
+  const conf=document.getElementById('rc2').value;
+  const err=document.getElementById('gerr');
+  if(!email || !code || !newP){ err.textContent='All fields are required.'; return; }
+  if(newP!==conf){ err.textContent='New passwords don’t match.'; return; }
+  err.textContent='Updating…';
+  try{
+    const r=await api('reset_password',{email, code, new_password:newP});
+    if(r&&r.ok){
+      showGate(`<div class="glogo">${LOGO}</div><h2>Password updated</h2>
+        <p class="gsub">Your password has been reset. Please log in with your new password.</p>
+        <button class="btn" style="width:100%" onclick="showLogin()">Go to login</button>`);
+    } else {
+      err.textContent=(r&&r.error)||'Could not reset password.';
+    }
+  }catch(e){ err.textContent='Network error reaching the backend.'; }
+}
+
+/* ---- CHANGE PASSWORD (uses current password; no email reset needed) ---- */
+function showChangePassword(prefillUser){
+  showGate(`<div class="glogo">${LOGO}</div><h2>Change password</h2>
+    <p class="gsub">Enter your current password and choose a new one.</p>
+    <label class="fld"><span>Email / Username</span><input id="cu" autocomplete="username" value="${esc(prefillUser||'')}"/></label>
+    <label class="fld"><span>Current password</span><input id="co" type="password" autocomplete="current-password"/></label>
+    <label class="fld"><span>New password</span><input id="cn" type="password" autocomplete="new-password" minlength="8" maxlength="128"/></label>
+    <label class="fld"><span>Confirm new password</span><input id="cc" type="password" autocomplete="new-password" minlength="8" maxlength="128"/></label>
+    <div class="gsub" style="font-size:12px;margin:-4px 0 8px">At least 8 characters, with a letter and a digit.</div>
+    <div id="gerr" class="gerr"></div>
+    <button class="btn" style="width:100%" onclick="doChangePassword()">Update password</button>
+    <div class="grow"><a onclick="showLogin()">← Back to login</a></div>`);
+  setTimeout(()=>{ const e=document.getElementById('cc'); if(e) e.addEventListener('keydown',ev=>{ if(ev.key==='Enter') doChangePassword(); }); },0);
+}
+async function doChangePassword(){
+  const u=document.getElementById('cu').value.trim();
+  const oldP=document.getElementById('co').value;
+  const newP=document.getElementById('cn').value;
+  const conf=document.getElementById('cc').value;
+  const err=document.getElementById('gerr');
+  if(!u || !oldP || !newP){ err.textContent='All fields are required.'; return; }
+  if(newP!==conf){ err.textContent='New passwords don’t match.'; return; }
+  if(newP===oldP){ err.textContent='New password must be different from the current one.'; return; }
+  err.textContent='Updating…';
+  try{
+    const r=await api('change_password',{username:u, old_password:oldP, new_password:newP});
+    if(r&&r.ok){
+      showGate(`<div class="glogo">${LOGO}</div><h2>Password updated</h2>
+        <p class="gsub">Your password has been changed. Please log in with your new password.</p>
+        <button class="btn" style="width:100%" onclick="showLogin()">Go to login</button>`);
+    } else {
+      err.textContent=(r&&r.error)||'Could not change password.';
+    }
+  }catch(e){ err.textContent='Network error reaching the backend.'; }
 }
 async function doLogin(){
   const u=document.getElementById('lu').value.trim(), p=document.getElementById('lp').value, err=document.getElementById('gerr');

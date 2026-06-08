@@ -25,8 +25,9 @@ var T_DATA  = 'Data';
 var T_USERS = 'Users';
 var T_SESS  = 'Sessions';
 var T_AUDIT = 'Audit';
+var T_RESET = 'Resets';
 
-var BACKEND_VERSION = '2026-05-26-role-field';
+var BACKEND_VERSION = '2026-06-08-password-reset';
 
 /* ---- security config --------------------------------------------------- */
 var PW_HASH_ITER          = 1000;                  // SHA-256 stretch iterations
@@ -39,6 +40,9 @@ var LOCKOUT_MS            = 30 * 60 * 1000;        // 30 min lockout
 var MAX_LEN_TEXT          = 200;                   // generic short text field limit
 var MAX_LEN_LONG          = 2000;                  // long text field limit
 var GENERIC_LOGIN_ERR     = 'Invalid email or password.'; // single error to prevent user enumeration
+var RESET_CODE_TTL_MS     = 15 * 60 * 1000;        // password-reset code valid for 15 min
+var RESET_MAX_ATTEMPTS    = 5;                     // wrong-code attempts before a code is burned
+var TEMP_PW_LEN           = 12;                    // length of admin-generated temp passwords
 
 /* ---- entry points ------------------------------------------------------ */
 
@@ -54,12 +58,15 @@ function doPost(e) {
       case 'signup':           out = signup_(req); break;
       case 'logout':           out = logout_(req); break;
       case 'change_password':  out = changePassword_(req); break;
+      case 'forgot_password':  out = forgotPassword_(req); break;
+      case 'reset_password':   out = resetPassword_(req); break;
       case 'load':             out = load_(req); break;
       case 'save':             out = save_(req); break;
       // admin-only endpoints
       case 'list_users':       out = list_users_(req); break;
       case 'approve_user':     out = approve_user_(req); break;
       case 'reject_user':      out = reject_user_(req); break;
+      case 'admin_reset_password': out = admin_reset_password_(req); break;
       case 'list_audit':       out = list_audit_(req); break;
       default:                 out = { ok: false, error: 'Unknown action: ' + req.action };
     }
@@ -75,8 +82,9 @@ function doGet() {
     ok: true,
     msg: 'Isha Karnataka backend is live.',
     version: BACKEND_VERSION,
-    actions: ['ping','login','signup','logout','change_password','load','save',
-              'list_users','approve_user','reject_user','list_audit']
+    actions: ['ping','login','signup','logout','change_password','forgot_password',
+              'reset_password','load','save','list_users','approve_user','reject_user',
+              'admin_reset_password','list_audit']
   });
 }
 
@@ -181,6 +189,7 @@ function ensure_() {
   }
   sheet_(T_SESS, ['token','username','created']);
   sheet_(T_AUDIT, ['timestamp','actor','action','target','details']);
+  sheet_(T_RESET, ['email','code_hash','expires','used','attempts']);
 }
 
 /* ---- helpers: security primitives -------------------------------------- */
@@ -266,6 +275,26 @@ function validateEmail_(email) {
 function clampStr_(s, max) {
   s = String(s == null ? '' : s);
   return s.length > max ? s.substring(0, max) : s;
+}
+
+// Generate a human-friendly temp password that satisfies the strength policy
+// (always contains letters + digits). Used by the admin "reset password" tool.
+function generateTempPassword_() {
+  var letters = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ'; // no ambiguous il/IO
+  var digits  = '23456789';
+  var all = letters + digits;
+  var out = letters.charAt(Math.floor(Math.random() * letters.length))
+          + digits.charAt(Math.floor(Math.random() * digits.length));
+  for (var i = out.length; i < TEMP_PW_LEN; i++) {
+    out += all.charAt(Math.floor(Math.random() * all.length));
+  }
+  return out;
+}
+
+// Generate a 6-digit numeric code for email-based password reset.
+function generateResetCode_() {
+  var n = Math.floor(Math.random() * 1000000);
+  return ('00000' + n).slice(-6);
 }
 
 /* ---- helpers: rate limiting ------------------------------------------- */
@@ -453,6 +482,99 @@ function changePassword_(req) {
   return { ok: false, error: 'User not found.' };
 }
 
+/* ---- auth: forgot password (email-based code) ------------------------ */
+
+function forgotPassword_(req) {
+  ensure_();
+  var email = clampStr_(String(req.email || req.username || '').trim().toLowerCase(), MAX_LEN_TEXT);
+  // Always return a generic success to avoid revealing whether an email exists.
+  var generic = { ok: true, sent: true };
+  if (!validateEmail_(email)) return generic;
+
+  var sh = sheet_(T_USERS);
+  var rows = sh.getDataRange().getValues();
+  var found = null;
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).trim().toLowerCase() === email) { found = rows[i]; break; }
+  }
+  if (!found) { audit_(email, 'forgot_password_unknown', email, null); return generic; }
+
+  var code = generateResetCode_();
+  var rs = sheet_(T_RESET, ['email','code_hash','expires','used','attempts']);
+  // Remove any prior codes for this email (only the newest code is valid)
+  var rrows = rs.getDataRange().getValues();
+  for (var j = rrows.length - 1; j >= 1; j--) {
+    if (String(rrows[j][0]).trim().toLowerCase() === email) rs.deleteRow(j + 1);
+  }
+  rs.appendRow([email, hashPassword_(code), Date.now() + RESET_CODE_TTL_MS, 'no', 0]);
+
+  // Send the code by email. Failures are swallowed so we never leak existence.
+  try {
+    var name = String(found[2] || '').split(' ')[0];
+    MailApp.sendEmail({
+      to: email,
+      subject: 'Isha Karnataka — your password reset code',
+      body: 'Hi ' + (name || 'there') + ',\n\n'
+          + 'Your password reset code is: ' + code + '\n\n'
+          + 'It expires in 15 minutes. Enter it in the app along with your new password.\n'
+          + 'If you did not request this, you can ignore this email.\n\n'
+          + '— Isha Karnataka'
+    });
+    audit_(email, 'forgot_password_sent', email, null);
+  } catch (e) {
+    audit_(email, 'forgot_password_mail_failed', email, null);
+  }
+  return generic;
+}
+
+function resetPassword_(req) {
+  ensure_();
+  var email   = clampStr_(String(req.email || req.username || '').trim().toLowerCase(), MAX_LEN_TEXT);
+  var code    = clampStr_(String(req.code || '').trim(), 12);
+  var newPass = String(req.new_password || req.newPassword || '');
+  if (!email || !code || !newPass) return { ok: false, error: 'Email, code and new password are required.' };
+  var pwErr = validatePasswordStrength_(newPass);
+  if (pwErr) return { ok: false, error: pwErr };
+
+  var rs = sheet_(T_RESET, ['email','code_hash','expires','used','attempts']);
+  var rrows = rs.getDataRange().getValues();
+  for (var i = 1; i < rrows.length; i++) {
+    if (String(rrows[i][0]).trim().toLowerCase() !== email) continue;
+    var expires  = parseInt(rrows[i][2], 10) || 0;
+    var used     = String(rrows[i][3]).toLowerCase().trim();
+    var attempts = parseInt(rrows[i][4], 10) || 0;
+    if (used === 'yes')            return { ok: false, error: 'This code has already been used. Request a new one.' };
+    if (Date.now() > expires)      { rs.deleteRow(i + 1); return { ok: false, error: 'This code has expired. Request a new one.' }; }
+    if (attempts >= RESET_MAX_ATTEMPTS) { rs.deleteRow(i + 1); return { ok: false, error: 'Too many attempts. Request a new code.' }; }
+
+    if (!verifyPassword_(code, rrows[i][1])) {
+      rs.getRange(i + 1, 5).setValue(attempts + 1);
+      audit_(email, 'reset_password_bad_code', email, null);
+      return { ok: false, error: 'Incorrect or expired code.' };
+    }
+
+    // Code is valid — set the new password on the user row.
+    var us = sheet_(T_USERS);
+    var urows = us.getDataRange().getValues();
+    for (var k = 1; k < urows.length; k++) {
+      if (String(urows[k][0]).trim().toLowerCase() === email) {
+        us.getRange(k + 1, 2).setValue(hashPassword_(newPass));
+        clearFailedLogins_(k + 1);
+        break;
+      }
+    }
+    rs.getRange(i + 1, 4).setValue('yes'); // burn the code
+    // Invalidate all existing sessions for this user
+    var ss = sheet_(T_SESS); var srows = ss.getDataRange().getValues();
+    for (var m = srows.length - 1; m >= 1; m--) {
+      if (String(srows[m][1]).toLowerCase() === email) ss.deleteRow(m + 1);
+    }
+    audit_(email, 'reset_password_success', email, null);
+    return { ok: true };
+  }
+  return { ok: false, error: 'Incorrect or expired code.' };
+}
+
 /* ---- helpers: sessions ----------------------------------------------- */
 
 function isAdminUsername_(u) {
@@ -530,6 +652,34 @@ function reject_user_(req) {
   var result = setUserActive_(req.username, 'no');
   if (result.ok) audit_(actor, 'admin_reject_user', req.username, null);
   return result;
+}
+
+// Admin-only: set a fresh temporary password for any user and return it so the
+// admin can pass it to the person. The temp password is generated server-side
+// (the admin never types it). The user can then log in and change it.
+function admin_reset_password_(req) {
+  var gate = requireAdmin_(req.token); if (gate) return gate;
+  var actor  = userForToken_(req.token);
+  var target = clampStr_(String(req.username || '').trim().toLowerCase(), MAX_LEN_TEXT);
+  if (!target) return { ok: false, error: 'Username required.' };
+  if (target === 'admin') return { ok: false, error: 'Use the change-password flow for the admin account.' };
+
+  var sh = sheet_(T_USERS);
+  var rows = sh.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).trim().toLowerCase() !== target) continue;
+    var temp = generateTempPassword_();
+    sh.getRange(i + 1, 2).setValue(hashPassword_(temp));
+    clearFailedLogins_(i + 1);
+    // Invalidate existing sessions so the old credentials stop working
+    var ss = sheet_(T_SESS); var srows = ss.getDataRange().getValues();
+    for (var j = srows.length - 1; j >= 1; j--) {
+      if (String(srows[j][1]).toLowerCase() === target) ss.deleteRow(j + 1);
+    }
+    audit_(actor, 'admin_reset_password', target, null);
+    return { ok: true, username: rows[i][0], temp_password: temp };
+  }
+  return { ok: false, error: 'User not found.' };
 }
 
 function setUserActive_(username, value) {
