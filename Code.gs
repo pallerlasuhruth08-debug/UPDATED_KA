@@ -90,6 +90,70 @@ function json_(obj) {
 
 function ss_() { return SpreadsheetApp.getActiveSpreadsheet(); }
 
+// Utility: run this from the Apps Script editor (Run -> showSheetUrl), then
+// open View -> Logs to see the URL of the backend Sheet this script is bound to.
+function showSheetUrl() {
+  var url = ss_().getUrl();
+  Logger.log(url);
+  return url;
+}
+
+/* ===========================================================================
+ * EDITOR-ONLY RECOVERY UTILITIES
+ * Run these from the Apps Script editor (pick the function, click Run, then
+ * open the Execution log / View -> Logs). They are NOT exposed over the web
+ * app (doPost) — they only work when run by you from the editor.
+ * ===========================================================================*/
+
+// Show the state of every account (active status, whether the password is
+// stored hashed or as legacy plaintext, lockout). Does NOT print the password
+// or hash itself. Use this to see WHY a login is being rejected.
+function diagnoseLogins() {
+  ensure_();
+  var rows = sheet_(T_USERS).getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    var stored = rows[i][1];
+    Logger.log(
+      'user="%s"  active="%s"  pwFormat=%s  locked=%s  email="%s"',
+      rows[i][0],
+      rows[i][3],
+      isHashed_(stored) ? 'hashed' : (stored ? 'PLAINTEXT/other' : 'EMPTY'),
+      isLockedOut_(rows[i]),
+      rows[i][4]
+    );
+  }
+}
+
+// Reset ONE account's password to a known value and make it active + unlocked.
+// 1. Edit EMAIL and NEW_PASSWORD below.
+// 2. Run resetUserPassword from the editor.
+// 3. Log in with that email + password.
+// 4. (Recommended) blank these back out afterwards.
+function resetUserPassword() {
+  var EMAIL        = 'admin';          // <-- the username/email to fix (e.g. 'admin' or 'someone@email.com')
+  var NEW_PASSWORD = 'Isha@2026!';     // <-- the new password (>=8 chars, a letter + a digit)
+
+  ensure_();
+  var target = String(EMAIL).trim().toLowerCase();
+  var sh = sheet_(T_USERS);
+  var rows = sh.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).trim().toLowerCase() === target) {
+      sh.getRange(i + 1, 2).setValue(hashPassword_(NEW_PASSWORD)); // password (hashed)
+      sh.getRange(i + 1, 4).setValue('yes');                       // active
+      clearFailedLogins_(i + 1);                                   // clear lockout
+      // Drop any existing sessions so old tokens can't linger
+      var ss = sheet_(T_SESS); var srows = ss.getDataRange().getValues();
+      for (var j = srows.length - 1; j >= 1; j--) {
+        if (String(srows[j][1]).toLowerCase() === target) ss.deleteRow(j + 1);
+      }
+      Logger.log('OK: "%s" reset to the new password, set active, unlocked.', rows[i][0]);
+      return;
+    }
+  }
+  Logger.log('No account found for "%s". Run diagnoseLogins to see existing accounts.', EMAIL);
+}
+
 function sheet_(name, headers) {
   var ss = ss_();
   var sh = ss.getSheetByName(name);
