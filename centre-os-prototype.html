@@ -285,6 +285,12 @@
   .profile-section{margin-top:18px}
   .profile-section .ps-head{font-weight:800;font-size:13px;margin-bottom:6px}
 
+  /* profile picture upload + circular photo avatars */
+  .av img,.rv-av img,.coord-card .av img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+  .photo-field{display:flex;align-items:center;gap:14px;margin:2px 0 6px}
+  .photo-preview{width:72px;height:72px;border-radius:50%;flex:none;background:#eef0fa;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;font-weight:700;text-align:center;overflow:hidden}
+  .photo-preview img{width:100%;height:100%;object-fit:cover}
+
   /* read-only profile view (shown when a person is already assigned) */
   .read-view{margin-top:14px}
   .rv-head{display:flex;gap:14px;align-items:center;padding:14px;background:#fafbff;border:1px solid var(--line);border-radius:12px}
@@ -1118,8 +1124,10 @@ function coordCard(personObj, meta, onclickJs){
   const who = personName(personObj);
   const sub = [personProfession(personObj), personMobile(personObj)].filter(Boolean).join(' · ');
   const initials = (who||'').split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+  const photo = personPhoto(personObj);
+  const avatar = who ? (photo ? `<img src="${esc(photo)}" alt="${esc(who)}"/>` : esc(initials)) : '+';
   return `<div class="coord-card ${who?'assigned':''}" onclick='${onclickJs}'>
-    <div class="av" style="${who?`background:${meta.color};color:#fff`:''}">${esc(who?initials:'+')}</div>
+    <div class="av" style="${who?`background:${meta.color};color:#fff`:''}">${avatar}</div>
     <div class="body">
       <div class="lbl">${meta.name}</div>
       <div class="nm">${who?esc(who):'<span style="color:var(--muted);font-weight:600">Not yet assigned</span>'}</div>
@@ -1329,7 +1337,9 @@ function renderPeople(){
     if(IS_ADMIN && edu) extras.push(`<b>Education:</b> ${esc(edu)}`);
     if(programs) extras.push(`<b>Programs:</b> ${esc(programs)}`);
     const safeTelStr = safeTel(mob);
-    h+=`<div class="person"><div class="av" style="background:${x.color}">${esc(initials||'·')}</div>
+    const photo = personPhoto(p);
+    const avatar = photo ? `<img src="${esc(photo)}" alt="${esc(name||'profile picture')}"/>` : esc(initials||'·');
+    h+=`<div class="person"><div class="av" style="background:${x.color}">${avatar}</div>
       <div class="nm">${esc(name)}${prof?` <span style="color:var(--muted);font-weight:500;font-size:12px">· ${esc(prof)}</span>`:''}</div>
       <div class="rl">${esc(x.roleLabel)} <span class="pri ${x.priority?'p':'n'}" style="margin-left:4px">${x.priority?'Priority':'Next'}</span></div>
       <div class="loc">${esc(x.place)} · ${esc(x.scope)}${mob?` · <a href="tel:${esc(safeTelStr)}" style="color:inherit">📞 ${esc(mob)}</a>`:''}${email?` · <a href="mailto:${esc(email)}" style="color:inherit">✉ ${esc(email)}</a>`:''}</div>
@@ -1581,6 +1591,46 @@ function personEducation(p){ return (!p||typeof p==='string')?'':(p.education||'
 function personPrograms(p){ return (!p||typeof p==='string')?'':(p.programs||''); }
 function personVolunteering(p){ return (!p||typeof p==='string')?'':(p.volunteering||''); }
 function personSocial(p){ return (!p||typeof p==='string')?'':(p.social||''); }
+function personPhoto(p){ return (!p||typeof p==='string')?'':(p.photo||''); }
+
+/* ---- profile picture: capture, downscale to a small circular avatar ---- */
+/* The whole app state is saved as one JSON blob in the Sheet (≤1 MB), so we
+   resize each picture to a 256px JPEG (~10–20 KB) before storing it. */
+let CURRENT_PHOTO = '';
+function onPhotoPick(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  if(!/^image\//.test(file.type)){ flagProfileError('Please choose an image file (jpg, png…).'); input.value=''; return; }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 256;
+      let w = img.width, h = img.height;
+      const scale = Math.min(1, MAX/Math.max(w,h));
+      w = Math.round(w*scale); h = Math.round(h*scale);
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      CURRENT_PHOTO = c.toDataURL('image/jpeg', 0.8);
+      const pv = document.getElementById('photoPreview');
+      if(pv) pv.innerHTML = `<img src="${CURRENT_PHOTO}" alt="profile picture"/>`;
+      flagProfileError('');
+    };
+    img.onerror = () => flagProfileError('That image couldn’t be read. Try another file.');
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function flagProfileError(msg){
+  const e = document.getElementById('profileErr');
+  if(e) e.textContent = msg || '';
+  else if(msg) alert(msg);
+}
+// A picture is mandatory whenever a person is being assigned (i.e. has a name).
+function requireProfilePhoto(v){
+  if(!v.photo){ flagProfileError('A profile picture is required — please upload one before saving.'); return false; }
+  return true;
+}
 // XSS-safe HTML escape. Safe in both HTML content and double-quoted
 // attribute contexts. Use this for ANY user-supplied data being inserted
 // into innerHTML / template strings.
@@ -1601,10 +1651,20 @@ function safeTel(v){ return String(v||'').replace(/[^0-9+]/g,''); }
 
 function richProfileFields(p){
   const opts = (list, sel) => list.map(o=>`<option value="${esc(o)}" ${o===sel?'selected':''}>${o}</option>`).join('');
+  // Seed the in-progress photo from any existing one on this person.
+  CURRENT_PHOTO = personPhoto(p) || '';
+  const photoPreview = CURRENT_PHOTO
+    ? `<img src="${esc(CURRENT_PHOTO)}" alt="profile picture"/>`
+    : 'No photo';
   return `
     <div class="profile-section">
       <div class="ps-head">Assign a person</div>
-      <p class="hint">To start, coordinators only need <b>name + phone</b>. The full profile can be completed later by the person themselves when they sign in.</p>
+      <p class="hint">To start, coordinators need <b>name + phone + a profile picture</b>. The rest of the profile can be completed later by the person themselves when they sign in.</p>
+      <label class="fld"><span>Profile picture *</span></label>
+      <div class="photo-field">
+        <div class="photo-preview" id="photoPreview">${photoPreview}</div>
+        <input id="assignPhotoFile" type="file" accept="image/*" capture="user" onchange="onPhotoPick(this)"/>
+      </div>
       <label class="fld"><span>Full name *</span>
         <input id="assignName" value="${esc(personName(p))}" placeholder="e.g. Priya N."/></label>
       <div class="profile-row">
@@ -1631,6 +1691,7 @@ function richProfileFields(p){
         <textarea id="assignVolunteering" rows="3" placeholder="Briefly describe their seva journey...">${esc(personVolunteering(p))}</textarea></label>
       <label class="fld"><span>Social profiles</span>
         <input id="assignSocial" value="${esc(personSocial(p))}" placeholder="LinkedIn, Instagram, etc."/></label>
+      <div id="profileErr" class="gerr"></div>
     </div>
   `;
 }
@@ -1650,9 +1711,10 @@ function personReadView(p){
     ['Social',          personSocial(p)]
   ].filter(([_,v]) => v && String(v).trim().length);
 
+  const photo = personPhoto(p);
   let h = `<div class="read-view">
     <div class="rv-head">
-      <div class="rv-av">${initials}</div>
+      <div class="rv-av">${photo?`<img src="${esc(photo)}" alt="${esc(personName(p)||'profile picture')}"/>`:initials}</div>
       <div>
         <div class="rv-name">${esc(personName(p)||'')}</div>
         ${personProfession(p) ? `<div class="rv-prof">${esc(personProfession(p))}</div>` : ''}
@@ -1687,7 +1749,8 @@ function gatherProfile(){
     education:   ($('#assignEducation')?.value||''),
     programs:    ($('#assignPrograms')?.value||'').trim(),
     volunteering:($('#assignVolunteering')?.value||'').trim(),
-    social:      ($('#assignSocial')?.value||'').trim()
+    social:      ($('#assignSocial')?.value||'').trim(),
+    photo:       CURRENT_PHOTO || ''
   };
 }
 
@@ -1811,7 +1874,9 @@ function openRole(placeId, roleKey, mode){
 }
 function saveRole(placeId, roleKey){
   const n=find(placeId); const v=gatherProfile();
-  if(v.name){ n.assign[roleKey]=v; } else { delete n.assign[roleKey]; }
+  if(!v.name){ delete n.assign[roleKey]; closeModal(); render(); return; }
+  if(!requireProfilePhoto(v)) return;
+  n.assign[roleKey]=v;
   closeModal(); render();
 }
 function clearRole(placeId, roleKey){ delete find(placeId).assign[roleKey]; closeModal(); render(); }
@@ -1859,7 +1924,9 @@ function openRegionRole(roleKey, mode){
 function saveRegionRole(roleKey){
   if(!STATE.assign) STATE.assign={};
   const v=gatherProfile();
-  if(v.name){ STATE.assign[roleKey]=v; } else { delete STATE.assign[roleKey]; }
+  if(!v.name){ delete STATE.assign[roleKey]; closeModal(); render(); return; }
+  if(!requireProfilePhoto(v)) return;
+  STATE.assign[roleKey]=v;
   closeModal(); render();
 }
 function clearRegionRole(roleKey){ if(STATE.assign) delete STATE.assign[roleKey]; closeModal(); render(); }
@@ -1900,7 +1967,9 @@ function openSectorSlot(sectorId, slot, mode){
 function saveSectorSlot(sectorId, slot){
   const s=find(sectorId); if(!s.assign) s.assign={};
   const v=gatherProfile();
-  if(v.name){ s.assign[slot]=v; } else { delete s.assign[slot]; }
+  if(!v.name){ delete s.assign[slot]; closeModal(); render(); return; }
+  if(!requireProfilePhoto(v)) return;
+  s.assign[slot]=v;
   closeModal(); render();
 }
 function clearSectorSlot(sectorId, slot){ const s=find(sectorId); if(s.assign) delete s.assign[slot]; closeModal(); render(); }
@@ -1942,7 +2011,9 @@ function openCentreSlot(placeId, slot, mode){
 function saveCentreSlot(placeId, slot){
   const n=find(placeId); if(!n.assign) n.assign={};
   const v=gatherProfile(); const key='centre_'+slot;
-  if(v.name){ n.assign[key]=v; } else { delete n.assign[key]; }
+  if(!v.name){ delete n.assign[key]; closeModal(); render(); return; }
+  if(!requireProfilePhoto(v)) return;
+  n.assign[key]=v;
   closeModal(); render();
 }
 function clearCentreSlot(placeId, slot){ const n=find(placeId); if(n.assign) delete n.assign['centre_'+slot]; closeModal(); render(); }
