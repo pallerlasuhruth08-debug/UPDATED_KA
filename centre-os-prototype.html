@@ -1626,10 +1626,29 @@ function flagProfileError(msg){
   if(e) e.textContent = msg || '';
   else if(msg) alert(msg);
 }
-// A picture is mandatory whenever a person is being assigned (i.e. has a name).
-function requireProfilePhoto(v){
-  if(!v.photo){ flagProfileError('A profile picture is required — please upload one before saving.'); return false; }
-  return true;
+// Every field is mandatory whenever a person is being assigned (i.e. has a
+// name). Returns an error string naming the first missing field, or null.
+function validateProfile(v){
+  const required = [
+    ['photo',        'a profile picture'],
+    ['name',         'the full name'],
+    ['mobile',       'the phone number'],
+    ['email',        'the email address'],
+    ['age',          'the age'],
+    ['occupation',   'the occupation status'],
+    ['profession',   'the profession'],
+    ['work',         'the work experience'],
+    ['education',    'the educational background'],
+    ['programs',     'the Isha programs completed'],
+    ['volunteering', 'the volunteering experience'],
+    ['social',       'the social profiles']
+  ];
+  for(let i=0;i<required.length;i++){
+    const k = required[i][0], label = required[i][1];
+    if(!v[k] || !String(v[k]).trim()) return 'Please fill in ' + label + ' — all fields are required.';
+  }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) return 'Please enter a valid email address.';
+  return null;
 }
 // XSS-safe HTML escape. Safe in both HTML content and double-quoted
 // attribute contexts. Use this for ANY user-supplied data being inserted
@@ -1659,7 +1678,7 @@ function richProfileFields(p){
   return `
     <div class="profile-section">
       <div class="ps-head">Assign a person</div>
-      <p class="hint">To start, coordinators need <b>name + phone + a profile picture</b>. The rest of the profile can be completed later by the person themselves when they sign in.</p>
+      <p class="hint"><b>All fields are required.</b> Please complete the full profile — including a profile picture — before saving.</p>
       <label class="fld"><span>Profile picture *</span></label>
       <div class="photo-field">
         <div class="photo-preview" id="photoPreview">${photoPreview}</div>
@@ -1670,26 +1689,26 @@ function richProfileFields(p){
       <div class="profile-row">
         <label class="fld"><span>Phone *</span>
           <input id="assignMobile" type="tel" value="${esc(personMobile(p))}" placeholder="+91 98xxxxxxxx"/></label>
-        <label class="fld"><span>Email</span>
+        <label class="fld"><span>Email *</span>
           <input id="assignEmail" type="email" value="${esc(personEmail(p))}" placeholder="name@example.com"/></label>
       </div>
       <div class="profile-row">
-        <label class="fld"><span>Age</span>
+        <label class="fld"><span>Age *</span>
           <input id="assignAge" type="number" min="0" value="${esc(personAge(p))}" placeholder="32"/></label>
-        <label class="fld"><span>Occupation status</span>
+        <label class="fld"><span>Occupation status *</span>
           <select id="assignOccupation"><option value="">— select —</option>${opts(OCCUPATION_OPTIONS, personOccupation(p))}</select></label>
       </div>
-      <label class="fld"><span>Profession</span>
+      <label class="fld"><span>Profession *</span>
         <input id="assignProfession" value="${esc(personProfession(p))}" placeholder="e.g. Software engineer, Teacher"/></label>
-      <label class="fld"><span>Work experience</span>
+      <label class="fld"><span>Work experience *</span>
         <textarea id="assignWork" rows="2" placeholder="Brief work history">${esc(personWork(p))}</textarea></label>
-      <label class="fld"><span>Educational background</span>
+      <label class="fld"><span>Educational background *</span>
         <select id="assignEducation"><option value="">— select —</option>${opts(EDUCATION_OPTIONS, personEducation(p))}</select></label>
-      <label class="fld"><span>Isha programs completed</span>
+      <label class="fld"><span>Isha programs completed *</span>
         <textarea id="assignPrograms" rows="2" placeholder="e.g. Inner Engineering, Bhava Spandana, Samyama">${esc(personPrograms(p))}</textarea></label>
-      <label class="fld"><span>Volunteering experience / journey</span>
+      <label class="fld"><span>Volunteering experience / journey *</span>
         <textarea id="assignVolunteering" rows="3" placeholder="Briefly describe their seva journey...">${esc(personVolunteering(p))}</textarea></label>
-      <label class="fld"><span>Social profiles</span>
+      <label class="fld"><span>Social profiles *</span>
         <input id="assignSocial" value="${esc(personSocial(p))}" placeholder="LinkedIn, Instagram, etc."/></label>
       <div id="profileErr" class="gerr"></div>
     </div>
@@ -1875,7 +1894,7 @@ function openRole(placeId, roleKey, mode){
 function saveRole(placeId, roleKey){
   const n=find(placeId); const v=gatherProfile();
   if(!v.name){ delete n.assign[roleKey]; closeModal(); render(); return; }
-  if(!requireProfilePhoto(v)) return;
+  const err=validateProfile(v); if(err){ flagProfileError(err); return; }
   n.assign[roleKey]=v;
   closeModal(); render();
 }
@@ -1925,7 +1944,7 @@ function saveRegionRole(roleKey){
   if(!STATE.assign) STATE.assign={};
   const v=gatherProfile();
   if(!v.name){ delete STATE.assign[roleKey]; closeModal(); render(); return; }
-  if(!requireProfilePhoto(v)) return;
+  const err=validateProfile(v); if(err){ flagProfileError(err); return; }
   STATE.assign[roleKey]=v;
   closeModal(); render();
 }
@@ -1968,7 +1987,7 @@ function saveSectorSlot(sectorId, slot){
   const s=find(sectorId); if(!s.assign) s.assign={};
   const v=gatherProfile();
   if(!v.name){ delete s.assign[slot]; closeModal(); render(); return; }
-  if(!requireProfilePhoto(v)) return;
+  const err=validateProfile(v); if(err){ flagProfileError(err); return; }
   s.assign[slot]=v;
   closeModal(); render();
 }
@@ -2012,7 +2031,7 @@ function saveCentreSlot(placeId, slot){
   const n=find(placeId); if(!n.assign) n.assign={};
   const v=gatherProfile(); const key='centre_'+slot;
   if(!v.name){ delete n.assign[key]; closeModal(); render(); return; }
-  if(!requireProfilePhoto(v)) return;
+  const err=validateProfile(v); if(err){ flagProfileError(err); return; }
   n.assign[key]=v;
   closeModal(); render();
 }
